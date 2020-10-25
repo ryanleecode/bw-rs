@@ -1,0 +1,3 @@
+[submodule "ceres-mpq"]
+	path = ceres-mpq
+	url = git@github.com:ryanleecode/ceres-mpq.git

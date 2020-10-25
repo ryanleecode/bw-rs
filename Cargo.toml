@@ -1,2 +1,2 @@
 [workspace]
-members = ["ceres-mpq"]
+members = ["ceres-mpq", "bw_assets"]

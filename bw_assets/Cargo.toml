@@ -3,3 +3,15 @@ name = "bw_assets"
 version = "0.1.0"
 authors = ["Ryan <drdgvhbh@gmail.com>"]
 edition = "2018"
+
+[dependencies]
+snafu = "0.6.9"
+ceres-mpq = { path = "../ceres-mpq" }
+maplit = "1.0.2"
+
+[dependencies.amethyst]
+version = "0.15.3"
+features = ["vulkan"]
+
+[dev-dependencies]
+spectral = "0.6.0"

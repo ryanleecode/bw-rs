@@ -5,7 +5,10 @@
 //! Amethyst game engine.
 
 #[macro_use]
+extern crate derive_builder;
+#[macro_use]
 #[cfg(test)]
 extern crate maplit;
 
+pub mod map;
 pub mod mpq;

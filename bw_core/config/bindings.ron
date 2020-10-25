@@ -1,0 +1,25 @@
+(
+  axes: {
+    "camera_x": Emulated(
+        pos: Key(D),
+        neg: Key(A),
+    ),
+    "camera_y": Emulated(
+        pos: Key(W),
+        neg: Key(S),
+    ),
+    "camera_rx": Emulated(
+        pos: Key(R),
+        neg: Key(F),
+    ),
+    "camera_ry": Emulated(
+        pos: Key(T),
+        neg: Key(G),
+    ),
+    "camera_rz": Emulated(
+        pos: Key(Y),
+        neg: Key(H),
+    )
+  },
+  actions: {},
+)

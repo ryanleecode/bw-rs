@@ -1,0 +1,6 @@
+(
+    title: "BW-RS",
+    // fullscreen: Some(MonitorIdent(0, "")),
+    dimensions: Some((640, 500)),
+    // maximized: true,
+)

@@ -3,3 +3,16 @@ name = "bw_core"
 version = "0.1.0"
 authors = ["Ryan <drdgvhbh@gmail.com>"]
 edition = "2018"
+
+[dependencies]
+serde = "^1.0.116"
+bw_assets = { path = "../bw_assets" }
+log = "0.4.11"
+ron = "0.6.2"
+image = "0.23.1"
+rayon = "1.1"
+ceres-mpq = { path = "../ceres-mpq" }
+
+[dependencies.amethyst]
+version = "0.15.3"
+features = ["vulkan", "tiles"]

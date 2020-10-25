@@ -12,3 +12,4 @@ extern crate maplit;
 
 pub mod map;
 pub mod mpq;
+pub mod tileset;

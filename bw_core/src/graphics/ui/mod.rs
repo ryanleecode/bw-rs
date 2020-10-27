@@ -10,7 +10,7 @@ use bw_assets::map::Map;
 mod minimap;
 pub mod resources;
 
-pub use minimap::MinimapMarkerCameraTrackingSystem;
+pub use minimap::{MinimapMarkerCameraTrackingSystem, MinimapMouseMovementTrackingSystem};
 
 pub fn create(
     params: (

@@ -36,6 +36,24 @@ pub struct Map {
     pub string_data: StringData,
 }
 
+impl Map {
+    pub fn pixel_width(&self) -> u32 {
+        self.tile_width() * MEGATILE_PX_SIDE_LEN
+    }
+
+    pub fn tile_width(&self) -> u32 {
+        self.dimensions.width as u32
+    }
+
+    pub fn tile_height(&self) -> u32 {
+        self.dimensions.height as u32
+    }
+
+    pub fn pixel_height(&self) -> u32 {
+        self.tile_height() * MEGATILE_PX_SIDE_LEN
+    }
+}
+
 pub type MapHandle = Handle<Map>;
 
 impl Asset for Map {

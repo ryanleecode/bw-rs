@@ -244,8 +244,8 @@ pub fn parse_side(b: &[u8]) -> nom::IResult<&[u8], Side> {
 pub struct MegaTile(u16);
 
 impl MegaTile {
-    pub const WIDTH: u32 = 32;
-    pub const HEIGHT: u32 = 32;
+    pub const PIXEL_WIDTH: u32 = 32;
+    pub const PIXEL_HEIGHT: u32 = 32;
 
     pub fn group_index(&self) -> usize {
         return ((self.0 >> 4) & 0x7ff) as usize;

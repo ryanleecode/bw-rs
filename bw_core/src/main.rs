@@ -20,8 +20,8 @@ use bw_assets::{
     tileset::{CV5s, VF4s, VR4s, VX4s, WPEs},
 };
 use graphics::{
-    camera::{CameraMovementSystem, CameraRotationSystem},
-    ui::MinimapMarkerCameraTrackingSystem,
+    camera::{CameraMovementSystem, CameraRotationSystem, CameraTranslationClampSystem},
+    ui::{MinimapMarkerCameraTrackingSystem, MinimapMouseMovementTrackingSystem},
 };
 use ron;
 use std::{fs::File, str::FromStr};
@@ -83,16 +83,33 @@ fn main() -> amethyst::Result<()> {
         .with(Processor::<WPEs>::new(), "wpes_processor", &[])
         .with(Processor::<CV5s>::new(), "cv5s_processor", &[])
         .with(Processor::<ArcMPQ>::new(), "mpq_processor", &[])
-        .with(CameraMovementSystem, "camera_system", &["input_system"])
+        .with(
+            CameraMovementSystem,
+            "camera_movement_system",
+            &["input_system"],
+        )
         .with(
             CameraRotationSystem,
             "camera_rotation_system",
             &["input_system"],
         )
         .with(
+            MinimapMouseMovementTrackingSystem::default(),
+            "minimap_camera_mouse_movement_system",
+            &[],
+        )
+        .with(
+            CameraTranslationClampSystem::default(),
+            "camera_translation_clamp_system",
+            &[
+                "minimap_camera_mouse_movement_system",
+                "camera_movement_system",
+            ],
+        )
+        .with(
             MinimapMarkerCameraTrackingSystem,
             "minimap_camera_tracking_system",
-            &[],
+            &["camera_translation_clamp_system"],
         );
 
     let state = state::MatchLoadingState::new(app_root.join("assets"), bw_config);

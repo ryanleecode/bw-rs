@@ -82,12 +82,12 @@ pub fn create_marker_entity(params: (&mut World, Handle<Texture>)) {
             .with(UiTransform::new(
                 String::from("minimap_marker"),
                 Anchor::BottomLeft,
-                Anchor::BottomLeft,
+                Anchor::TopLeft,
                 0f32,
                 0f32,
                 0.6f32,
-                24.0,
-                18.75,
+                21.5,
+                16.796875,
             ))
             .with(ui_img)
             .build(),

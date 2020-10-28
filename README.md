@@ -6,6 +6,6 @@ Open Source Implementation of Starcraft Brood War in Rust. Inspired by [OpenBW](
 
 You must own a legal copy of Starcraft have the assets `STARDAT.MPQ`, `BROODAT.MPQ`, `patch_rt.mpq` available (not remastered).
 
-Copy these assets into the `assets` folder.
+Copy these assets into the `bw_core/assets` folder.
 
 Execute `cargo run --release`.

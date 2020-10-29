@@ -1,40 +1,59 @@
 use amethyst::{
-    core::transform::Transform,
+    core::Time,
+    ecs::Entity,
     prelude::*,
-    renderer::{ActiveCamera, Camera},
+    ui::{UiFinder, UiText},
+    utils::fps_counter::FpsCounter,
     SimpleState,
 };
 use log::info;
 
-pub struct GameplayState;
-
-impl GameplayState {
-    pub fn new() -> GameplayState {
-        GameplayState
-    }
+#[derive(Default)]
+pub struct GameplayState {
+    paused: bool,
+    fps_display: Option<Entity>,
 }
 
 impl SimpleState for GameplayState {
-    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
+    fn on_start(&mut self, _: StateData<'_, GameData<'_, '_>>) {
         info!("GameplayState started");
+    }
+
+    fn on_pause(&mut self, _: StateData<'_, GameData<'_, '_>>) {
+        self.paused = true;
+    }
+
+    fn on_resume(&mut self, _: StateData<'_, GameData<'_, '_>>) {
+        self.paused = false;
+    }
+
+    fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
         let StateData { world, .. } = data;
 
-        initialize_camera(world);
+        if self.fps_display.is_none() {
+            world.exec(|finder: UiFinder<'_>| {
+                if let Some(entity) = finder.find("fps") {
+                    self.fps_display = Some(entity);
+                }
+            });
+        }
+
+        if !self.paused {
+            let mut ui_text = world.write_storage::<UiText>();
+
+            {
+                if let Some(fps_display) =
+                    self.fps_display.and_then(|entity| ui_text.get_mut(entity))
+                {
+                    const SAMPLE_SIZE: u64 = 20;
+                    if world.read_resource::<Time>().frame_number() % SAMPLE_SIZE == 0 {
+                        let fps = world.read_resource::<FpsCounter>().sampled_fps();
+                        fps_display.text = format!("FPS: {:.*}", 2, fps);
+                    }
+                }
+            }
+        }
+
+        Trans::None
     }
-}
-
-fn initialize_camera(world: &mut World) {
-    let camera_width = 640.0;
-    let camera_height = 500.0;
-
-    let camera = Camera::orthographic(0.0, camera_width, 0.0, camera_height, 0.0, 20.0);
-    let mut camera_transform = Transform::default();
-    camera_transform.set_translation_xyz(-(camera_width / 2.0), camera_height / 2.0, 10.0);
-
-    let camera_entity = world
-        .create_entity()
-        .with(camera)
-        .with(camera_transform)
-        .build();
-    world.fetch_mut::<ActiveCamera>().entity = Some(camera_entity);
 }

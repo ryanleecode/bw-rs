@@ -1,0 +1,28 @@
+#![enable(implicit_some)]
+Container(
+  transform: (
+    id: "root",
+    anchor: Middle,
+    stretch: XY(x_margin: 0.0, y_margin: 0.0, keep_aspect_ratio: false),
+  ),
+  children: [
+    Label(
+      transform: (
+          id: "fps",
+          x: 40.,
+          y: -16.,
+          width: 200.,
+          height: 25.,
+          tab_order: 2,
+          anchor: TopLeft,
+          opaque: false,
+      ),
+      text: (
+          text: "N/A",
+          font: File("fonts/Eurostile-Reg.ttf", ("TTF", ())),
+          font_size: 14.,
+          color: (1.0, 1.0, 1.0, 1.0),
+      )
+    ),
+  ]
+)

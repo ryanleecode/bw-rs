@@ -1,4 +1,3 @@
-use amethyst::tiles::MortonEncoder2D;
 use amethyst::{
     assets::Processor,
     core::transform::TransformBundle,
@@ -14,6 +13,7 @@ use amethyst::{
     utils::application_root_dir,
     LoggerConfig,
 };
+use amethyst::{tiles::MortonEncoder2D, utils::fps_counter::FpsCounterBundle};
 use bw_assets::{
     map::Map,
     mpq::ArcMPQ,
@@ -31,8 +31,29 @@ mod config;
 mod graphics;
 mod state;
 
+fn setup_logger() -> Result<(), fern::InitError> {
+    fern::Dispatch::new()
+        .format(|out, message, record| {
+            out.finish(format_args!(
+                "{}[{}][{}] {}",
+                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
+                record.target(),
+                record.level(),
+                message
+            ))
+        })
+        .level(log::LevelFilter::Debug)
+        .filter(|metadata| metadata.target() != "amethyst_utils::fps_counter")
+        .chain(std::io::stdout())
+        .chain(fern::log_file("output.log")?)
+        .apply()?;
+    Ok(())
+}
+
 fn main() -> amethyst::Result<()> {
     use amethyst::error::ResultExt;
+
+    setup_logger()?;
 
     let app_root = application_root_dir()
         .with_context(|_| amethyst::Error::from_string("cannot find application root dir"))?;
@@ -73,6 +94,7 @@ fn main() -> amethyst::Result<()> {
                 >::default())
                 .with_plugin(RenderUi::default()),
         )?
+        .with_bundle(FpsCounterBundle::default())?
         .with_bundle(TransformBundle::new())?
         .with_bundle(input_bundle)?
         .with_bundle(UiBundle::<StringBindings>::new())?

@@ -3,7 +3,11 @@ use crate::config::BWConfig;
 use crate::graphics::{self};
 use amethyst::{
     assets::{AssetStorage, Completion, Handle, Loader, ProgressCounter},
+    core::Transform,
     prelude::*,
+    renderer::ActiveCamera,
+    renderer::Camera,
+    ui::UiCreator,
     SimpleState, SimpleTrans,
 };
 use bw_assets::mpq::MPQSource;
@@ -59,8 +63,15 @@ impl MatchLoadingState {
 }
 
 impl SimpleState for MatchLoadingState {
-    fn on_start(&mut self, _: StateData<'_, GameData<'_, '_>>) {
+    fn on_start(&mut self, data: StateData<'_, GameData<'_, '_>>) {
         info!("MatchLoadingState started");
+
+        let StateData { world, .. } = data;
+
+        initialize_camera(world);
+        world.exec(|mut creator: UiCreator<'_>| {
+            creator.create("ui/hud.ron", &mut self.progress_counter);
+        });
     }
 
     fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
@@ -143,7 +154,9 @@ impl SimpleState for MatchLoadingState {
 
                     Trans::None
                 }
-                MapAssetsLoadingState::Done => Trans::Switch(Box::new(super::GameplayState::new())),
+                MapAssetsLoadingState::Done => {
+                    Trans::Switch(Box::new(super::GameplayState::default()))
+                }
             },
             Completion::Failed => {
                 for err_meta in self.progress_counter.errors() {
@@ -159,4 +172,20 @@ impl SimpleState for MatchLoadingState {
             Completion::Loading => Trans::None,
         }
     }
+}
+
+fn initialize_camera(world: &mut World) {
+    let camera_width = 640.0;
+    let camera_height = 500.0;
+
+    let camera = Camera::orthographic(0.0, camera_width, 0.0, camera_height, 0.0, 20.0);
+    let mut camera_transform = Transform::default();
+    camera_transform.set_translation_xyz(-(camera_width / 2.0), camera_height / 2.0, 10.0);
+
+    let camera_entity = world
+        .create_entity()
+        .with(camera)
+        .with(camera_transform)
+        .build();
+    world.fetch_mut::<ActiveCamera>().entity = Some(camera_entity);
 }

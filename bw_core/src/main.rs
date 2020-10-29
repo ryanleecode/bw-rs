@@ -19,6 +19,7 @@ use bw_assets::{
     mpq::ArcMPQ,
     tileset::{CV5s, VF4s, VR4s, VX4s, WPEs},
 };
+use fern::colors::{Color, ColoredLevelConfig};
 use graphics::{
     camera::{CameraMovementSystem, CameraRotationSystem, CameraTranslationClampSystem},
     ui::{MinimapMarkerCameraTrackingSystem, MinimapMouseMovementTrackingSystem},
@@ -32,14 +33,25 @@ mod graphics;
 mod state;
 
 fn setup_logger() -> Result<(), fern::InitError> {
+    let colors_line = ColoredLevelConfig::new()
+        .error(Color::Red)
+        .warn(Color::Yellow)
+        .trace(Color::BrightBlack);
+
+    let colors_level = colors_line.clone().info(Color::Green);
+
     fern::Dispatch::new()
-        .format(|out, message, record| {
+        .format(move |out, message, record| {
             out.finish(format_args!(
-                "{}[{}][{}] {}",
-                chrono::Local::now().format("[%Y-%m-%d][%H:%M:%S]"),
-                record.target(),
-                record.level(),
-                message
+                "{color_line}[{date}][{target}][{level}{color_line}] {message}\x1B[0m",
+                color_line = format_args!(
+                    "\x1B[{}m",
+                    colors_line.get_color(&record.level()).to_fg_str()
+                ),
+                date = chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                target = record.target(),
+                level = colors_level.color(record.level()),
+                message = message,
             ))
         })
         .level(log::LevelFilter::Debug)

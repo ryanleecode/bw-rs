@@ -161,8 +161,11 @@ impl SimpleState for MatchLoadingState {
             Completion::Failed => {
                 for err_meta in self.progress_counter.errors() {
                     warn!(
-                        "Failed to load asset: {} of type {}: {}",
-                        err_meta.asset_name, err_meta.asset_type_name, err_meta.error
+                        "Failed to load asset: {} of type {}: {} {:#?}",
+                        err_meta.asset_name,
+                        err_meta.asset_type_name,
+                        err_meta.error,
+                        err_meta.error.causes()
                     );
                 }
                 error!("Failed to initialize game.");

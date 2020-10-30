@@ -11,7 +11,6 @@ use amethyst::{
     tiles::RenderTiles2D,
     ui::{RenderUi, UiBundle},
     utils::application_root_dir,
-    LoggerConfig,
 };
 use amethyst::{tiles::MortonEncoder2D, utils::fps_counter::FpsCounterBundle};
 use bw_assets::{
@@ -32,7 +31,7 @@ mod config;
 mod graphics;
 mod state;
 
-fn setup_logger() -> Result<(), fern::InitError> {
+fn setup_logger(level_filter: log::LevelFilter) -> Result<(), fern::InitError> {
     let colors_line = ColoredLevelConfig::new()
         .error(Color::Red)
         .warn(Color::Yellow)
@@ -54,7 +53,7 @@ fn setup_logger() -> Result<(), fern::InitError> {
                 message = message,
             ))
         })
-        .level(log::LevelFilter::Debug)
+        .level(level_filter)
         .filter(|metadata| metadata.target() != "amethyst_utils::fps_counter")
         .chain(std::io::stdout())
         .chain(fern::log_file("output.log")?)
@@ -65,8 +64,6 @@ fn setup_logger() -> Result<(), fern::InitError> {
 fn main() -> amethyst::Result<()> {
     use amethyst::error::ResultExt;
 
-    setup_logger()?;
-
     let app_root = application_root_dir()
         .with_context(|_| amethyst::Error::from_string("cannot find application root dir"))?;
     let config_dir = app_root.join("config");
@@ -74,13 +71,10 @@ fn main() -> amethyst::Result<()> {
     let bw_config_path = config_dir.join("bw_config.ron");
 
     let bw_config_f = File::open(bw_config_path)
-        .with_context(|_| amethyst::Error::from_string(format!("failed to open config path",)))?;
+        .with_context(|_| amethyst::error::format_err!("failed to open config path",))?;
     let bw_config: config::BWConfig = ron::de::from_reader(bw_config_f)?;
 
-    let mut logger_config: LoggerConfig = Default::default();
-    logger_config.level_filter = log::LevelFilter::from_str(&bw_config.log_level)?;
-
-    amethyst::start_logger(logger_config);
+    setup_logger(log::LevelFilter::from_str(&bw_config.log_level)?)?;
 
     let display_config_path = config_dir.join("display.ron");
     let assets_dir = app_root.join("assets");

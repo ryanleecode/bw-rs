@@ -7,11 +7,14 @@ use amethyst::{
         ecs::{Read, ReadExpect, ReadStorage, System, WriteStorage},
         Transform,
     },
+    ecs::Entities,
+    ecs::Join,
     input::{InputHandler, StringBindings},
     renderer::ActiveCamera,
     renderer::Camera,
-    ui::{Anchor, UiTransform},
-    {window::ScreenDimensions, winit::MouseButton},
+    ui::Anchor,
+    ui::UiTransform,
+    window::ScreenDimensions,
 };
 use bw_assets::map::Map;
 
@@ -21,38 +24,56 @@ pub struct MinimapMarkerCameraTrackingSystem;
 
 impl<'s> System<'s> for MinimapMarkerCameraTrackingSystem {
     type SystemData = (
+        Entities<'s>,
+        ReadStorage<'s, Camera>,
         Read<'s, ActiveCamera>,
-        Read<'s, MinimapMarker>,
-        Read<'s, Option<Handle<Map>>>,
         Read<'s, AssetStorage<Map>>,
+        ReadStorage<'s, Handle<Map>>,
         ReadStorage<'s, Transform>,
+        ReadStorage<'s, MinimapMarker>,
+        ReadStorage<'s, Minimap>,
         WriteStorage<'s, UiTransform>,
     );
 
     fn run(
         &mut self,
         (
-            active_camera_entity,
-            minimap_marker,
-            map_handle_opt,
+            entities,
+            cameras,
+            active_camera,
             map_storage,
+            map_handles,
             transforms,
+            mimimap_markers,
+            minimaps,
             mut ui_transforms,
         ): Self::SystemData,
     ) {
-        let minimap_marker_transform_opt = minimap_marker
-            .entity()
-            .and_then(|entity| ui_transforms.get_mut(entity));
-        let camera_transform_opt = active_camera_entity
-            .entity
-            .and_then(|entity| transforms.get(entity));
-        let map_opt = map_handle_opt
-            .as_ref()
-            .and_then(|map_handle| map_storage.get(&map_handle.clone()));
+        let minimap_ui_transform_opt = (&minimaps, &ui_transforms)
+            .join()
+            .next()
+            .map(|(_, minimap_ui_transform)| minimap_ui_transform.to_owned());
+        let mut minimap_markers_join = (&mimimap_markers, &mut ui_transforms, &map_handles).join();
+        let mut camera_join = (&cameras, &transforms).join();
 
-        if let (Some(minimap_marker_transform), Some(camera_transform), Some(map)) =
-            (minimap_marker_transform_opt, camera_transform_opt, map_opt)
-        {
+        if let (
+            Some(minimap_ui_transform),
+            Some((minimap_marker_ui_transform, map)),
+            Some((_, camera_transform)),
+        ) = (
+            minimap_ui_transform_opt,
+            minimap_markers_join
+                .next()
+                .and_then(|(_, minimap_marker_ui_transform, map_handle)| {
+                    map_storage
+                        .get(map_handle)
+                        .map(|map| (minimap_marker_ui_transform, map))
+                }),
+            active_camera
+                .entity
+                .and_then(|entity| camera_join.get(entity, &entities))
+                .or_else(|| camera_join.next()),
+        ) {
             let x_percentage = normalize(
                 camera_transform.translation().x as f32,
                 -((map.pixel_width() as f32) / 2.0),
@@ -64,104 +85,96 @@ impl<'s> System<'s> for MinimapMarkerCameraTrackingSystem {
                 (map.pixel_height() / 2) as f32,
             );
 
-            let minimap_x = (map.tile_width() as f32) * x_percentage;
-            let minimap_y = (map.tile_height() as f32) * y_percentage;
+            let minimap_x = rescale(
+                x_percentage,
+                0.0..1.0,
+                -(minimap_ui_transform.width / 2.0)..(minimap_ui_transform.width / 2.0),
+            );
+            let minimap_y = rescale(
+                y_percentage,
+                0.0..1.0,
+                -(minimap_ui_transform.height / 2.0)..(minimap_ui_transform.height / 2.0),
+            );
 
-            minimap_marker_transform.local_x = minimap_x;
-            minimap_marker_transform.local_y = minimap_y;
+            minimap_marker_ui_transform.local_x = minimap_x;
+            minimap_marker_ui_transform.local_y = minimap_y;
         }
     }
 }
 /// System that keeps track of mouse movements on the minimap
-pub struct MinimapMouseMovementTrackingSystem {
-    was_lmb_originally_pressed_in_minimap_box: bool,
-}
+///
+/// This system does not check whether the player has clicked on the minimap
+/// to drag it around. It is the responsibility of the dispatcher to determine
+/// whether this system should run.
+pub struct MinimapMouseMovementTrackingSystem;
 
 impl Default for MinimapMouseMovementTrackingSystem {
     fn default() -> Self {
-        MinimapMouseMovementTrackingSystem {
-            was_lmb_originally_pressed_in_minimap_box: false,
-        }
+        MinimapMouseMovementTrackingSystem
     }
 }
 
 impl<'s> System<'s> for MinimapMouseMovementTrackingSystem {
     type SystemData = (
         Read<'s, InputHandler<StringBindings>>,
-        Read<'s, Minimap>,
-        WriteStorage<'s, UiTransform>,
+        ReadStorage<'s, Minimap>,
+        ReadStorage<'s, UiTransform>,
         ReadExpect<'s, ScreenDimensions>,
         Read<'s, ActiveCamera>,
         ReadStorage<'s, Camera>,
         WriteStorage<'s, Transform>,
         Read<'s, AssetStorage<Map>>,
-        Read<'s, Option<Handle<Map>>>,
+        ReadStorage<'s, Handle<Map>>,
+        Entities<'s>,
     );
 
     fn run(
         &mut self,
         (
             input,
-            minimap_opt,
-            mut ui_transforms,
+            minimaps,
+            ui_transforms,
             screen_dimensions,
-            active_camera_entity,
+            active_camera,
             cameras,
             mut transforms,
             map_storage,
-            map_handle_opt,
+            map_handles,
+            entities,
         ): Self::SystemData,
     ) {
-        let mouse_position_opt = input.mouse_position();
-        let is_lmb_down = input.mouse_button_is_down(MouseButton::Left);
-        let minimap_ui_transform_opt = minimap_opt
-            .entity()
-            .and_then(|entity| ui_transforms.get_mut(entity));
-        let camera_transform_opt = active_camera_entity
-            .entity
-            .and_then(|entity| transforms.get_mut(entity));
-        let map_opt = map_handle_opt
-            .as_ref()
-            .and_then(|map_handle| map_storage.get(&map_handle.clone()));
-        let active_camera_opt = active_camera_entity
-            .entity
-            .and_then(|entity| cameras.get(entity));
+        let mut minimap_join = (&minimaps, &ui_transforms, &map_handles).join();
+        let mut camera_join = (&cameras, &mut transforms).join();
 
-        if !is_lmb_down {
-            self.was_lmb_originally_pressed_in_minimap_box = false;
-        }
-
-        if let (
-            Some(mouse_position),
-            Some(minimap_ui_transform),
-            Some(camera_transform),
-            Some(map),
-            Some(active_camera),
-        ) = (
-            mouse_position_opt,
-            minimap_ui_transform_opt,
-            camera_transform_opt,
-            map_opt,
-            active_camera_opt,
+        if let (Some((minimap_ui_transform, map)), Some((camera, camera_transform))) = (
+            minimap_join
+                .next()
+                .and_then(|(_, minimap_ui_transform, map_handle)| {
+                    map_storage
+                        .get(map_handle)
+                        .map(|map| (minimap_ui_transform, map))
+                }),
+            active_camera
+                .entity
+                .and_then(|entity| camera_join.get(entity, &entities))
+                .or_else(|| camera_join.next()),
         ) {
-            assert_eq!(minimap_ui_transform.anchor, Anchor::BottomLeft);
-            let (local_mouse_position_x, local_mouse_position_y) =
-                get_mouse_position_relative_to_minimap(
-                    mouse_position,
-                    &minimap_ui_transform,
-                    &screen_dimensions,
-                );
+            let mouse_position_opt = input.mouse_position();
 
-            if is_within_bounding_box(
-                (local_mouse_position_x, local_mouse_position_y),
-                minimap_ui_transform,
-            ) {
-                self.was_lmb_originally_pressed_in_minimap_box = is_lmb_down;
-            }
+            if let Some(mouse_position) = mouse_position_opt {
+                assert_eq!(minimap_ui_transform.anchor, Anchor::Middle);
+                let (local_mouse_position_x, local_mouse_position_y) =
+                    get_mouse_position_relative_to_minimap(mouse_position, &screen_dimensions);
 
-            if self.was_lmb_originally_pressed_in_minimap_box {
-                let x_percentage = local_mouse_position_x / minimap_ui_transform.width;
-                let y_percentage = local_mouse_position_y / minimap_ui_transform.height;
+                let minimap_x_offset =
+                    minimap_ui_transform.pixel_x() - (minimap_ui_transform.pixel_width() / 2.0);
+                let minimap_y_offset =
+                    minimap_ui_transform.pixel_y() - (minimap_ui_transform.pixel_height() / 2.0);
+
+                let x_percentage =
+                    (local_mouse_position_x - minimap_x_offset) / minimap_ui_transform.width;
+                let y_percentage =
+                    (local_mouse_position_y - minimap_y_offset) / minimap_ui_transform.height;
 
                 let map_width = map.pixel_width() as f32;
                 let map_height = map.pixel_height() as f32;
@@ -177,8 +190,8 @@ impl<'s> System<'s> for MinimapMouseMovementTrackingSystem {
                     (-map_height / 2.0)..(map_height / 2.0),
                 );
 
-                let camera_width = 2.0 / active_camera.matrix[(0, 0)];
-                let camera_height = -2.0 / active_camera.matrix[(1, 1)];
+                let camera_width = 2.0 / camera.matrix[(0, 0)];
+                let camera_height = -2.0 / camera.matrix[(1, 1)];
 
                 camera_transform.translation_mut().x = x - camera_width / 2.0;
                 camera_transform.translation_mut().y = y + camera_height / 2.0;
@@ -189,10 +202,8 @@ impl<'s> System<'s> for MinimapMouseMovementTrackingSystem {
 
 fn get_mouse_position_relative_to_minimap(
     mouse_position: (f32, f32),
-    minimap_ui_transform: &UiTransform,
     screen_dimensions: &ScreenDimensions,
 ) -> (f32, f32) {
-    assert_eq!(minimap_ui_transform.anchor, Anchor::BottomLeft);
     let (x, y) = mouse_position;
 
     (x, screen_dimensions.height() - y)
@@ -208,7 +219,7 @@ fn rescale(value: f32, old: Range<f32>, new: Range<f32>) -> f32 {
 
     percentage * (new.end - new.start) + new.start
 }
-
+/*
 fn is_within_bounding_box(position: (f32, f32), origin: &UiTransform) -> bool {
     let x_min = origin.local_x;
     let x_max = origin.local_x + origin.width;
@@ -217,3 +228,4 @@ fn is_within_bounding_box(position: (f32, f32), origin: &UiTransform) -> bool {
 
     position.0 >= x_min && position.0 <= x_max && position.1 >= y_min && position.1 <= y_max
 }
+ */

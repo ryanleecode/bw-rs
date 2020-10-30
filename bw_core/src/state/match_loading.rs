@@ -1,9 +1,13 @@
-use crate::config::BWConfig;
+use crate::{
+    config::BWConfig,
+    graphics::ui::{Minimap, MinimapMarker},
+};
 
 use crate::graphics::{self};
 use amethyst::{
     assets::{AssetStorage, Completion, Handle, Loader, ProgressCounter},
     core::Transform,
+    ecs::storage::MaskedStorage,
     prelude::*,
     renderer::ActiveCamera,
     renderer::Camera,
@@ -22,6 +26,7 @@ pub enum MapAssetsLoadingState {
     Idle,
     BWAssets(Vec<Handle<ArcMPQ>>),
     Map(MapHandle),
+    Prefabs(graphics::tile::resources::TilesetHandles, MapHandle),
     Tileset(graphics::tile::resources::TilesetHandles, MapHandle),
     Done,
 }
@@ -68,10 +73,9 @@ impl SimpleState for MatchLoadingState {
 
         let StateData { world, .. } = data;
 
-        initialize_camera(world);
-        world.exec(|mut creator: UiCreator<'_>| {
-            creator.create("ui/hud.ron", &mut self.progress_counter);
-        });
+        world.insert(MaskedStorage::<Handle<Map>>::default());
+        world.insert(MaskedStorage::<Minimap>::default());
+        world.insert(MaskedStorage::<MinimapMarker>::default());
     }
 
     fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
@@ -138,7 +142,18 @@ impl SimpleState for MatchLoadingState {
                     world.insert(tileset_handles.clone());
 
                     self.map_assets_loading_state =
-                        MapAssetsLoadingState::Tileset(tileset_handles, (*map_handle).clone());
+                        MapAssetsLoadingState::Prefabs(tileset_handles, (*map_handle).clone());
+
+                    Trans::None
+                }
+                MapAssetsLoadingState::Prefabs(tileset_handles, map_handle) => {
+                    let progress_counter = &mut self.progress_counter;
+                    world.exec(|mut creator: UiCreator<'_>| {
+                        creator.create("ui/hud.ron", progress_counter);
+                    });
+
+                    self.map_assets_loading_state =
+                        MapAssetsLoadingState::Tileset(tileset_handles.clone(), map_handle.clone());
 
                     Trans::None
                 }
@@ -149,6 +164,8 @@ impl SimpleState for MatchLoadingState {
                         tileset_handles,
                         &mut self.progress_counter,
                     ));
+
+                    initialize_camera(world, map_handle);
 
                     self.map_assets_loading_state = MapAssetsLoadingState::Done;
 
@@ -177,7 +194,7 @@ impl SimpleState for MatchLoadingState {
     }
 }
 
-fn initialize_camera(world: &mut World) {
+fn initialize_camera(world: &mut World, map_handle: &Handle<Map>) {
     let camera_width = 640.0;
     let camera_height = 500.0;
 
@@ -189,6 +206,7 @@ fn initialize_camera(world: &mut World) {
         .create_entity()
         .with(camera)
         .with(camera_transform)
+        .with(map_handle.clone())
         .build();
     world.fetch_mut::<ActiveCamera>().entity = Some(camera_entity);
 }

@@ -13,7 +13,6 @@ Container(
           y: -16.,
           width: 200.,
           height: 25.,
-          tab_order: 2,
           anchor: TopLeft,
           opaque: false,
       ),
@@ -24,5 +23,54 @@ Container(
           color: (1.0, 1.0, 1.0, 1.0),
       )
     ),
+    Container(
+      transform: (
+        id: "minimap_container",
+        x: 0.0,
+        y: 0.0,
+        width: 128.0,
+        height: 128.0,
+        anchor: BottomLeft,
+        pivot: BottomLeft,
+      ),
+      background: SolidColor(0.0, 0.0, 0.0, 1.0),
+      children: [
+        Image(
+            transform: (
+                id: "minimap_marker",
+                x: 0.0,
+                y: 0.0,
+                width: 21.5,
+                height: 16.796875,
+                anchor: Middle,
+                pivot: TopLeft,
+            ),
+            image: NineSlice(
+                x_start: 0,
+                y_start: 0,
+                width: 128,
+                height: 128,
+                left_dist: 1,
+                right_dist: 1,
+                top_dist: 1,
+                bottom_dist: 1,
+                mouse_reactive: true,
+                tex: File("texture/transparent_rectangle.png", ("IMAGE", ())),
+                texture_dimensions: (128,128),
+            ),
+        ),
+        Image(
+          transform: (
+            id: "minimap",
+            x: 0.0,
+            y: 0.0,
+            mouse_reactive: true,
+            anchor: Middle,
+            pivot: Middle,
+          ),
+          image: SolidColor(1.0, 0.0, 0.0, 1.0), // placeholder
+        ),
+      ],
+    )
   ]
 )

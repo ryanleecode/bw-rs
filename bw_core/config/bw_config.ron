@@ -1,4 +1,4 @@
 BWConfig(
-  log_level: "debug",
+  log_level: "info",
   map: "(2)Destination.scx"
 )

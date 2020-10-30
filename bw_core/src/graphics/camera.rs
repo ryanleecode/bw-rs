@@ -81,23 +81,25 @@ impl<'s> System<'s> for CameraTranslationClampSystem {
         ReadStorage<'s, Camera>,
         WriteStorage<'s, Transform>,
         Read<'s, AssetStorage<Map>>,
-        Read<'s, Option<Handle<Map>>>,
+        ReadStorage<'s, Handle<Map>>,
     );
 
     fn run(
         &mut self,
-        (active_camera_entity, entities, cameras, mut transforms,map_storage, map_handle_opt): Self::SystemData,
+        (active_camera_entity, entities, cameras, mut transforms, map_storage, map_handles): Self::SystemData,
     ) {
-        let mut camera_join = (&cameras, &mut transforms).join();
-        if let (Some((active_camera, camera_transform)), Some(map)) = (
-            active_camera_entity
-                .entity
-                .and_then(|a| camera_join.get(a, &entities))
-                .or_else(|| camera_join.next()),
-            map_handle_opt
-                .as_ref()
-                .and_then(|map_handle| map_storage.get(&map_handle.clone())),
-        ) {
+        let mut camera_join = (&cameras, &mut transforms, &map_handles).join();
+
+        if let Some((active_camera, camera_transform, map)) = active_camera_entity
+            .entity
+            .and_then(|entity| camera_join.get(entity, &entities))
+            .or_else(|| camera_join.next())
+            .and_then(|(active_camera, camera_transform, map_handle)| {
+                map_storage
+                    .get(map_handle)
+                    .map(|map| (active_camera, camera_transform, map))
+            })
+        {
             let camera_width = 2.0 / active_camera.matrix[(0, 0)];
             let camera_height = -2.0 / active_camera.matrix[(1, 1)];
 

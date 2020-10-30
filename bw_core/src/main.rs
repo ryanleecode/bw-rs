@@ -19,10 +19,7 @@ use bw_assets::{
     tileset::{CV5s, VF4s, VR4s, VX4s, WPEs},
 };
 use fern::colors::{Color, ColoredLevelConfig};
-use graphics::{
-    camera::{CameraMovementSystem, CameraRotationSystem, CameraTranslationClampSystem},
-    ui::{MinimapMarkerCameraTrackingSystem, MinimapMouseMovementTrackingSystem},
-};
+use graphics::camera::{CameraMovementSystem, CameraRotationSystem};
 use ron;
 use std::{fs::File, str::FromStr};
 
@@ -120,24 +117,6 @@ fn main() -> amethyst::Result<()> {
             CameraRotationSystem,
             "camera_rotation_system",
             &["input_system"],
-        )
-        .with(
-            MinimapMouseMovementTrackingSystem::default(),
-            "minimap_camera_mouse_movement_system",
-            &[],
-        )
-        .with(
-            CameraTranslationClampSystem::default(),
-            "camera_translation_clamp_system",
-            &[
-                "minimap_camera_mouse_movement_system",
-                "camera_movement_system",
-            ],
-        )
-        .with(
-            MinimapMarkerCameraTrackingSystem,
-            "minimap_camera_tracking_system",
-            &["camera_translation_clamp_system"],
         );
 
     let state = state::MatchLoadingState::new(app_root.join("assets"), bw_config);

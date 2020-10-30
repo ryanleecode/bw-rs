@@ -70,7 +70,7 @@ impl<R: Read + Seek> MPQ for ArchiveNewType<R> {
 
 /// New Type around MPQ such we can load it in Amethyst and add it to MPQSource.
 ///
-/// Just using MPQ is not enough because Amethyst's returns a reference that has
+/// Just using MPQ is not enough because Amethyst's loader returns a reference that has
 /// a limited lifetime.
 pub struct ArcMPQ(Arc<dyn MPQ + Send + Sync>);
 

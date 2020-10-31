@@ -1,3 +1,4 @@
+use bw_core::{Controller, Controllers, Unit, UnitOwner};
 use nom::{
     self,
     branch::alt,
@@ -24,7 +25,7 @@ pub enum Chunk {
     ScenarioType(ScenarioType),
     FileFormatVersion(FileFormatVersion),
     Tileset(Tileset),
-    Controllers(Vec<Controller>),
+    Controllers(Controllers),
     Dimensions(Dimensions),
     Sides(Vec<Side>),
     MegaTiles(Vec<MegaTile>),
@@ -46,7 +47,10 @@ pub fn parse_chunk(b: &[u8]) -> nom::IResult<&[u8], Chunk> {
         ChunkName::Tileset => map(parse_tileset, Chunk::Tileset)(remaining),
         ChunkName::Controllers => {
             let size = header.size as usize / mem::size_of::<Controller>();
-            map(count(parse_controller, size), Chunk::Controllers)(remaining)
+            map(
+                map(count(parse_controller, size), Controllers::new),
+                Chunk::Controllers,
+            )(remaining)
         }
         ChunkName::Dimensions => map(parse_dimensions, Chunk::Dimensions)(remaining),
         ChunkName::Side => {
@@ -209,16 +213,6 @@ pub fn parse_tileset(b: &[u8]) -> nom::IResult<&[u8], Tileset> {
     map_opt(map(le_u16, |n| n & Tileset::MASK), FromPrimitive::from_u16)(b)
 }
 
-#[derive(Debug, Clone, FromPrimitive, Eq, PartialEq)]
-pub enum Controller {
-    Inactive = 00,
-    RescuePassive = 03,
-    Unused = 04,
-    Computer = 05,
-    HumanOpenSlot = 06,
-    Neutral = 07,
-}
-
 pub fn parse_controller(b: &[u8]) -> nom::IResult<&[u8], Controller> {
     map_opt(le_u8, FromPrimitive::from_u8)(b)
 }
@@ -308,50 +302,17 @@ pub fn parse_string_data(b: &[u8]) -> nom::IResult<&[u8], StringData> {
     Ok((remaining, StringData(str_data)))
 }
 
-/// Pre-placed units on the map and their properties
-///
-/// http://www.staredit.net/wiki/index.php?title=Scenario.chk#.22UNIT.22_-_Placed_Units
-#[derive(Debug, Clone, Struple, Eq, PartialEq)]
-pub struct Unit {
-    serial_number: u32,
-    x: u16,
-    y: u16,
-    unit_id: u16,
-    relation_flag: u16,
-    special_property_flags: u16,
-    map_maker_flags: u16,
-    owner: u8,
-
-    /// Hit points % (1-100)
-    hitpoints_percentage: u8,
-
-    /// Shield points % (1-100)
-    shield_points_percentage: u8,
-
-    /// Energy points % (1-100)
-    energy_points_percentage: u8,
-
-    resource_amount: u32,
-    units_in_hangar: u16,
-    unit_state_flags: u16,
-
-    /// Class instance of the unit to which this unit is related to (i.e. via an
-    /// add-on, nydus link, etc.). It is "0" if the unit is not linked to any other
-    /// unit.
-    class_instance: u32,
-}
-
 pub fn parse_placed_unit(b: &[u8]) -> nom::IResult<&[u8], Unit> {
     map(
         tuple((
             le_u32,
             le_u16,
             le_u16,
+            map(le_u16, FromPrimitive::from_u16),
             le_u16,
             le_u16,
             le_u16,
-            le_u16,
-            le_u8,
+            map(le_u8, UnitOwner::new),
             le_u8,
             le_u8,
             le_u8,

@@ -7,11 +7,12 @@ edition = "2018"
 [dependencies]
 nom = "^5.1.2"
 struple = "0.1.0"
-num-derive = "0.2"
+num-derive = "0.3"
 num-traits = "0.2"
 derive_builder = "0.9.0"
 snafu = "0.6.9"
 ceres-mpq = { path = "../ceres-mpq" }
+bw_core = { path = "../bw_core" }
 maplit = "1.0.2"
 rayon = "1.1"
 

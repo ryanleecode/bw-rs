@@ -3,14 +3,13 @@ use amethyst::{
     assets::{Asset, Format, Handle},
     ecs::DenseVecStorage,
 };
+use bw_core::{Controllers, Unit};
 
 mod chk;
 
-pub use chk::{
-    Controller, Dimensions, FileFormatVersion, MegaTile, ScenarioType, Side, StringData, Tileset,
+pub use self::chk::{
+    Dimensions, FileFormatVersion, MegaTile, ScenarioType, Side, StringData, Tileset,
 };
-
-use self::chk::Unit;
 
 /// Every Starcraft map will have this file.
 const MAP_FILE_NAME: &str = "staredit\\scenario.chk";
@@ -31,7 +30,7 @@ pub struct Map {
     pub scenario_type: Option<ScenarioType>,
     pub file_format_version: FileFormatVersion,
     pub tileset: Tileset,
-    pub controllers: Vec<Controller>,
+    pub controllers: Controllers,
     pub dimensions: Dimensions,
     pub sides: Vec<Side>,
     pub megatiles: Vec<MegaTile>,

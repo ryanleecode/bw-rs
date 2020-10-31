@@ -4,7 +4,7 @@ use nom::{
     bytes::complete::{tag, take, take_until},
     combinator::{all_consuming, map, map_opt},
     multi::{count, many0},
-    number::complete::{le_u16, le_u32, le_u8},
+    number::complete::{le_u8, le_u16, le_u32},
     sequence::{preceded, tuple},
 };
 use num_derive::FromPrimitive;
@@ -28,6 +28,7 @@ pub enum Chunk {
     Dimensions(Dimensions),
     Sides(Vec<Side>),
     MegaTiles(Vec<MegaTile>),
+    Units(Vec<Unit>),
     StringData(StringData),
     Unknown,
 }
@@ -56,6 +57,11 @@ pub fn parse_chunk(b: &[u8]) -> nom::IResult<&[u8], Chunk> {
             let size = header.size as usize / mem::size_of::<MegaTile>();
             map(count(parse_megatile, size), Chunk::MegaTiles)(remaining)
         }
+        ChunkName::Unit => {
+            const UNIT_BYTE_SIZE: usize = 36;
+            let size = header.size as usize / UNIT_BYTE_SIZE;
+            map(count(parse_placed_unit, size), Chunk::Units)(remaining)
+        }
         ChunkName::StringData => map(parse_string_data, Chunk::StringData)(remaining),
         _ => map(take(header.size), |_| Chunk::Unknown)(remaining),
     }
@@ -71,6 +77,7 @@ pub enum ChunkName {
     Side,
     MegaTiles,
     StringData,
+    Unit,
     Unknown,
 }
 
@@ -91,6 +98,7 @@ impl ChunkName {
             ChunkName::Side => "SIDE".as_bytes(),
             ChunkName::MegaTiles => "MTXM".as_bytes(),
             ChunkName::StringData => "STR ".as_bytes(),
+            ChunkName::Unit => "UNIT".as_bytes(),
             ChunkName::Unknown => "????".as_bytes(),
         }
     }
@@ -129,6 +137,7 @@ pub fn parse_header(b: &[u8]) -> nom::IResult<&[u8], Header> {
         map(tag(ChunkName::StringData.as_bytes()), |_| {
             ChunkName::StringData
         }),
+        map(tag(ChunkName::Unit.as_bytes()), |_| ChunkName::Unit),
         map(take(HEADER_NAME_BYTE_SIZE), |_| ChunkName::Unknown),
     ))(b)?;
 
@@ -297,6 +306,62 @@ pub fn parse_string_data(b: &[u8]) -> nom::IResult<&[u8], StringData> {
     let (remaining, _) = take(size)(b)?;
 
     Ok((remaining, StringData(str_data)))
+}
+
+/// Pre-placed units on the map and their properties
+///
+/// http://www.staredit.net/wiki/index.php?title=Scenario.chk#.22UNIT.22_-_Placed_Units
+#[derive(Debug, Clone, Struple, Eq, PartialEq)]
+pub struct Unit {
+    serial_number: u32,
+    x: u16,
+    y: u16,
+    unit_id: u16,
+    relation_flag: u16,
+    special_property_flags: u16,
+    map_maker_flags: u16,
+    owner: u8,
+
+    /// Hit points % (1-100)
+    hitpoints_percentage: u8,
+
+    /// Shield points % (1-100)
+    shield_points_percentage: u8,
+
+    /// Energy points % (1-100)
+    energy_points_percentage: u8,
+
+    resource_amount: u32,
+    units_in_hangar: u16,
+    unit_state_flags: u16,
+
+    /// Class instance of the unit to which this unit is related to (i.e. via an
+    /// add-on, nydus link, etc.). It is "0" if the unit is not linked to any other
+    /// unit.
+    class_instance: u32,
+}
+
+pub fn parse_placed_unit(b: &[u8]) -> nom::IResult<&[u8], Unit> {
+    map(
+        tuple((
+            le_u32,
+            le_u16,
+            le_u16,
+            le_u16,
+            le_u16,
+            le_u16,
+            le_u16,
+            le_u8,
+            le_u8,
+            le_u8,
+            le_u8,
+            le_u32,
+            le_u16,
+            le_u16,
+            preceded(le_u32, le_u32),
+        )),
+        Unit::from_tuple,
+    )(b)
 }
 
 #[cfg(test)]

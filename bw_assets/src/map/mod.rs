@@ -10,6 +10,8 @@ pub use chk::{
     Controller, Dimensions, FileFormatVersion, MegaTile, ScenarioType, Side, StringData, Tileset,
 };
 
+use self::chk::Unit;
+
 /// Every Starcraft map will have this file.
 const MAP_FILE_NAME: &str = "staredit\\scenario.chk";
 
@@ -33,6 +35,7 @@ pub struct Map {
     pub dimensions: Dimensions,
     pub sides: Vec<Side>,
     pub megatiles: Vec<MegaTile>,
+    pub placed_units: Vec<Unit>,
     pub string_data: StringData,
 }
 
@@ -108,6 +111,9 @@ impl Format<Map> for MapFormat {
             }
             chk::Chunk::MegaTiles(megatiles) => {
                 map_builder.megatiles(megatiles);
+            }
+            chk::Chunk::Units(units) => {
+                map_builder.placed_units(units);
             }
             chk::Chunk::StringData(string_data) => {
                 map_builder.string_data(string_data);

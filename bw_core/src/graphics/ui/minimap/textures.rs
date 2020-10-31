@@ -98,7 +98,7 @@ fn create_minimap_texture(assets: (Map, CV5s, VX4s, VR4s, WPEs)) -> (Vec<u8>, (u
         let yi = i / map_px_width / map::MEGATILE_PX_SIDE_LEN;
 
         let megatile = &map.megatiles[(xi + yi * map_width) as usize];
-        let cv5 = &cv5s[megatile];
+        let cv5 = &cv5s[megatile][megatile];
         let minitiles = &vx4s[cv5];
 
         let xj = i % map_px_width % map::MEGATILE_PX_SIDE_LEN / map::MINITILE_PX_SIDE_LEN;

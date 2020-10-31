@@ -44,12 +44,12 @@ impl Tile for AmethystTileBridge {
         let cv5s_storage = world.try_fetch::<AssetStorage<CV5s>>()?;
         let cv5s = cv5s_storage.get(&tileset_handles.cv5s)?;
 
-        let cv5 = &cv5s[megatile];
+        let megatile_reference = &cv5s[megatile][megatile];
 
         let vx4s_storage = world.try_fetch::<AssetStorage<VX4s>>()?;
         let vx4s = vx4s_storage.get(&tileset_handles.vx4s)?;
 
-        let minitiles = &vx4s[cv5];
+        let minitiles = &vx4s[megatile_reference];
         let minitile = &minitiles[minitile_index(&coords)];
 
         let vr4s_storage = world.try_fetch::<AssetStorage<VR4s>>()?;

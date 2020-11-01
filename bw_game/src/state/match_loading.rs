@@ -1,6 +1,9 @@
 use crate::{
     config::BWConfig,
-    graphics::ui::{resources::load_dats, Minimap, MinimapMarker},
+    graphics::{
+        tile::TilesetHandles,
+        ui::{resources::load_dats, Minimap, MinimapMarker},
+    },
 };
 
 use crate::graphics::{self};
@@ -14,20 +17,22 @@ use amethyst::{
     ui::UiCreator,
     SimpleState, SimpleTrans,
 };
-use bw_assets::mpq::MPQSource;
 use bw_assets::{
     map::{Map, MapFormat, MapHandle},
     mpq::{self, ArcMPQ},
+    tileset::VR4sAsset,
+    tileset::{CV5sAsset, VF4sAsset, WPEsAsset},
 };
+use bw_assets::{mpq::MPQSource, tileset::VX4sAsset};
 use log::{error, info, warn};
-use std::path::PathBuf;
+use std::{path::PathBuf, sync::Arc};
 
 pub enum MapAssetsLoadingState {
     Idle,
     BWAssets(Vec<Handle<ArcMPQ>>),
     Map(MapHandle),
-    Prefabs(graphics::tile::resources::TilesetHandles, MapHandle),
-    Tileset(graphics::tile::resources::TilesetHandles, MapHandle),
+    Prefabs(TilesetHandles, MapHandle),
+    Tileset(MapHandle),
     Done,
 }
 
@@ -138,31 +143,70 @@ impl SimpleState for MatchLoadingState {
                         &mut self.progress_counter,
                     );
 
-                    world.insert(tileset_handles.clone());
-
                     self.map_assets_loading_state =
                         MapAssetsLoadingState::Prefabs(tileset_handles, (*map_handle).clone());
 
                     Trans::None
                 }
                 MapAssetsLoadingState::Prefabs(tileset_handles, map_handle) => {
+                    {
+                        let cv5s = world
+                            .write_resource::<AssetStorage<CV5sAsset>>()
+                            .get_mut(&tileset_handles.cv5s)
+                            .and_then(|asset| asset.take())
+                            .expect("cv5s is missing");
+                        world.insert(Arc::new(cv5s));
+                    }
+
+                    {
+                        let vf4s = world
+                            .write_resource::<AssetStorage<VF4sAsset>>()
+                            .get_mut(&tileset_handles.vf4s)
+                            .and_then(|asset| asset.take())
+                            .expect("vf4s is missing");
+                        world.insert(Arc::new(vf4s));
+                    }
+
+                    {
+                        let vr4s = world
+                            .write_resource::<AssetStorage<VR4sAsset>>()
+                            .get_mut(&tileset_handles.vr4s)
+                            .and_then(|asset| asset.take())
+                            .expect("vr4s is missing");
+                        world.insert(Arc::new(vr4s));
+                    }
+
+
+                    {
+                        let vx4s = world
+                            .write_resource::<AssetStorage<VX4sAsset>>()
+                            .get_mut(&tileset_handles.vx4s)
+                            .and_then(|asset| asset.take())
+                            .expect("vx4s is missing");
+                        world.insert(Arc::new(vx4s));
+                    }
+
+                    {
+                        let wpes = world
+                            .write_resource::<AssetStorage<WPEsAsset>>()
+                            .get_mut(&tileset_handles.wpes)
+                            .and_then(|asset| asset.take())
+                            .expect("wpes is missing");
+                        world.insert(Arc::new(wpes));
+                    }
+
                     let progress_counter = &mut self.progress_counter;
                     world.exec(|mut creator: UiCreator<'_>| {
                         creator.create("ui/hud.ron", progress_counter);
                     });
 
                     self.map_assets_loading_state =
-                        MapAssetsLoadingState::Tileset(tileset_handles.clone(), map_handle.clone());
+                        MapAssetsLoadingState::Tileset(map_handle.clone());
 
                     Trans::None
                 }
-                MapAssetsLoadingState::Tileset(tileset_handles, map_handle) => {
-                    graphics::create((
-                        world,
-                        map_handle,
-                        tileset_handles,
-                        &mut self.progress_counter,
-                    ));
+                MapAssetsLoadingState::Tileset(map_handle) => {
+                    graphics::create((world, map_handle, &mut self.progress_counter));
 
                     initialize_camera(world, map_handle);
 

@@ -5,24 +5,16 @@ use amethyst::{
 use bw_assets::map::Map;
 use image::ImageBuffer;
 use std::cell::UnsafeCell;
-use tile::resources::TilesetHandles;
 
 pub mod camera;
 pub mod tile;
 pub mod ui;
 
-pub fn create(
-    params: (
-        &mut World,
-        &Handle<Map>,
-        &TilesetHandles,
-        &mut ProgressCounter,
-    ),
-) {
-    let (world, map_handle, tileset_handles, progress_counter) = params;
+pub fn create(params: (&mut World, &Handle<Map>, &mut ProgressCounter)) {
+    let (world, map_handle, progress_counter) = params;
 
-    tile::map::create((world, map_handle, tileset_handles, progress_counter));
-    ui::create((world, map_handle, tileset_handles, progress_counter));
+    tile::map::create((world, map_handle, progress_counter));
+    ui::create((world, map_handle, progress_counter));
 }
 
 pub type RGBImageBuffer = ImageBuffer<image::Rgb<u8>, Vec<u8>>;

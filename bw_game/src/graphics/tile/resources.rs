@@ -6,8 +6,8 @@ use amethyst::{
 use bw_assets::{
     map::{Map, MapHandle},
     tileset::{
-        CV5Format, CV5s, CV5sHandle, VF4Format, VF4s, VF4sHandle, VR4Format, VR4s, VR4sHandle,
-        VX4Format, VX4s, VX4sHandle, WPEFormat, WPEs, WPEsHandle,
+        CV5Format, CV5sAsset, CV5sHandle, VF4Format, VF4sAsset, VF4sHandle, VR4Format, VR4sAsset,
+        VR4sHandle, VX4sAsset, VX4sAssetFormat, VX4sHandle, WPEFormat, WPEsAsset, WPEsHandle,
     },
 };
 
@@ -35,10 +35,10 @@ pub fn load(
 
         let vx4_handle = loader.load_from(
             format!("tileset\\{}.vx4", tileset_file_name),
-            VX4Format,
+            VX4sAssetFormat,
             "bw_assets",
             &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<VX4s>>(),
+            &world.read_resource::<AssetStorage<VX4sAsset>>(),
         );
 
         let vr4_handle = loader.load_from(
@@ -46,7 +46,7 @@ pub fn load(
             VR4Format,
             "bw_assets",
             &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<VR4s>>(),
+            &world.read_resource::<AssetStorage<VR4sAsset>>(),
         );
 
         let vf4_handle = loader.load_from(
@@ -54,7 +54,7 @@ pub fn load(
             VF4Format,
             "bw_assets",
             &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<VF4s>>(),
+            &world.read_resource::<AssetStorage<VF4sAsset>>(),
         );
 
         let wpe_handle = loader.load_from(
@@ -62,7 +62,7 @@ pub fn load(
             WPEFormat,
             "bw_assets",
             &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<WPEs>>(),
+            &world.read_resource::<AssetStorage<WPEsAsset>>(),
         );
 
         let cv5_handle = loader.load_from(
@@ -70,7 +70,7 @@ pub fn load(
             CV5Format,
             "bw_assets",
             &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<CV5s>>(),
+            &world.read_resource::<AssetStorage<CV5sAsset>>(),
         );
 
         TilesetHandles {
@@ -81,8 +81,6 @@ pub fn load(
             wpes: wpe_handle,
         }
     };
-
-    world.insert(tileset_handles.clone());
 
     tileset_handles
 }

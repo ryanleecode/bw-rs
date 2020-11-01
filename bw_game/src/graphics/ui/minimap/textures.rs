@@ -1,5 +1,4 @@
 use super::super::super::UnsafeImageBufferCell;
-use super::super::TilesetHandles;
 use amethyst::{
     assets::{AssetStorage, Handle, Loader, ProgressCounter},
     core::ecs::World,
@@ -19,12 +18,10 @@ use bw_assets::{
     tileset::{CV5s, VR4s, VX4s, WPEs},
 };
 use image::ImageBuffer;
-use std::cell::UnsafeCell;
+use std::{cell::UnsafeCell, sync::Arc};
 
-pub fn load_minimap(
-    params: (&World, &Handle<Map>, &TilesetHandles, &mut ProgressCounter),
-) -> Handle<Texture> {
-    let (world, map_handle, tileset_handles, progress_counter) = params;
+pub fn load_minimap(params: (&World, &Handle<Map>, &mut ProgressCounter)) -> Handle<Texture> {
+    let (world, map_handle, progress_counter) = params;
 
     let map_storage = world.read_resource::<AssetStorage<Map>>();
     let map = map_storage
@@ -32,29 +29,10 @@ pub fn load_minimap(
         .expect("map is missing")
         .clone();
 
-    let cv5s_storage = world.read_resource::<AssetStorage<CV5s>>();
-    let cv5s = cv5s_storage
-        .get(&tileset_handles.cv5s)
-        .expect("cv5s is missing")
-        .clone();
-
-    let vx4s_storage = world.read_resource::<AssetStorage<VX4s>>();
-    let vx4s = vx4s_storage
-        .get(&tileset_handles.vx4s)
-        .expect("vx4s is missing")
-        .clone();
-
-    let vr4s_storage = world.read_resource::<AssetStorage<VR4s>>();
-    let vr4s = vr4s_storage
-        .get(&tileset_handles.vr4s)
-        .expect("vr4s is missing")
-        .clone();
-
-    let wpes_storage = world.read_resource::<AssetStorage<WPEs>>();
-    let wpes = wpes_storage
-        .get(&tileset_handles.wpes)
-        .expect("wpes is missing")
-        .clone();
+    let cv5s = (*world.try_fetch::<Arc<CV5s>>().expect("cv5s is missing")).clone();
+    let vx4s = (*world.try_fetch::<Arc<VX4s>>().expect("vx4s is missing")).clone();
+    let vr4s = (*world.try_fetch::<Arc<VR4s>>().expect("vr4s is missing")).clone();
+    let wpes = (*world.try_fetch::<Arc<WPEs>>().expect("wpes is missing")).clone();
 
     let loader = world.read_resource::<Loader>();
     let minimap_texture = loader.load_from_data_async(
@@ -77,7 +55,9 @@ pub fn load_minimap(
     minimap_texture
 }
 
-fn create_minimap_texture(assets: (Map, CV5s, VX4s, VR4s, WPEs)) -> (Vec<u8>, (u32, u32)) {
+fn create_minimap_texture(
+    assets: (Map, Arc<CV5s>, Arc<VX4s>, Arc<VR4s>, Arc<WPEs>),
+) -> (Vec<u8>, (u32, u32)) {
     use rayon::prelude::*;
 
     let (map, cv5s, vx4s, vr4s, wpes) = assets;

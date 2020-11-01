@@ -17,7 +17,7 @@ use bw_assets::{
     dat::UnitDat,
     map::Map,
     mpq::ArcMPQ,
-    tileset::{CV5s, VF4s, VR4s, VX4s, WPEs},
+    tileset::{CV5sAsset, VF4sAsset, VR4sAsset, VX4sAsset, WPEsAsset},
 };
 use fern::colors::{Color, ColoredLevelConfig};
 use graphics::camera::{CameraMovementSystem, CameraRotationSystem};
@@ -103,11 +103,11 @@ fn main() -> amethyst::Result<()> {
         .with_bundle(input_bundle)?
         .with_bundle(UiBundle::<StringBindings>::new())?
         .with(Processor::<Map>::new(), "map_processor", &[])
-        .with(Processor::<VX4s>::new(), "vx4s_processor", &[])
-        .with(Processor::<VR4s>::new(), "vr4s_processor", &[])
-        .with(Processor::<VF4s>::new(), "vf4s_processor", &[])
-        .with(Processor::<WPEs>::new(), "wpes_processor", &[])
-        .with(Processor::<CV5s>::new(), "cv5s_processor", &[])
+        .with(Processor::<VX4sAsset>::new(), "vx4s_processor", &[])
+        .with(Processor::<VR4sAsset>::new(), "vr4s_processor", &[])
+        .with(Processor::<VF4sAsset>::new(), "vf4s_processor", &[])
+        .with(Processor::<WPEsAsset>::new(), "wpes_processor", &[])
+        .with(Processor::<CV5sAsset>::new(), "cv5s_processor", &[])
         .with(Processor::<ArcMPQ>::new(), "mpq_processor", &[])
         .with(Processor::<UnitDat>::new(), "unit_dat_processor", &[])
         .with(

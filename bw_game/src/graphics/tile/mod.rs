@@ -1,3 +1,5 @@
+use std::sync::Arc;
+
 use amethyst::{
     assets::AssetStorage,
     core::{
@@ -13,10 +15,11 @@ use bw_assets::{
     map::{Map, MapHandle},
     tileset::{CV5s, VR4s, VX4s},
 };
-use resources::TilesetHandles;
 
 pub mod map;
 pub mod resources;
+
+pub use resources::TilesetHandles;
 
 #[derive(Debug, Default, Clone)]
 pub struct AmethystTileBridge;
@@ -40,20 +43,16 @@ impl Tile for AmethystTileBridge {
 
         let megatile = &map.megatiles[megatile_index(&coords, &map)];
 
-        let tileset_handles = world.try_fetch::<TilesetHandles>()?;
-        let cv5s_storage = world.try_fetch::<AssetStorage<CV5s>>()?;
-        let cv5s = cv5s_storage.get(&tileset_handles.cv5s)?;
+        let cv5s = &(*world.try_fetch::<Arc<CV5s>>().expect("cv5s is missing"));
 
         let megatile_reference = &cv5s[megatile][megatile];
 
-        let vx4s_storage = world.try_fetch::<AssetStorage<VX4s>>()?;
-        let vx4s = vx4s_storage.get(&tileset_handles.vx4s)?;
+        let vx4s = &(*world.try_fetch::<Arc<VX4s>>().expect("vx4s is missing"));
 
         let minitiles = &vx4s[megatile_reference];
         let minitile = &minitiles[minitile_index(&coords)];
 
-        let vr4s_storage = world.try_fetch::<AssetStorage<VR4s>>()?;
-        let vr4s = vr4s_storage.get(&tileset_handles.vr4s)?;
+        let vr4s = &(*world.try_fetch::<Arc<VR4s>>().expect("vr4s is missing"));
 
         if minitile.is_horizontally_flipped() {
             Some(minitile.index() + vr4s.len())

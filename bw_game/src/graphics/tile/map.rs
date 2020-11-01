@@ -1,6 +1,5 @@
 use super::super::UnsafeImageBufferCell;
 use super::AmethystTileBridge;
-use super::TilesetHandles;
 use amethyst::{
     assets::{AssetStorage, Handle, Loader, ProgressCounter},
     core::{
@@ -24,30 +23,19 @@ use bw_assets::{
     tileset::{VR4s, WPEs},
 };
 use image::ImageBuffer;
-use std::cell::UnsafeCell;
+use std::{cell::UnsafeCell, sync::Arc};
 
 const TILEMAP_TEXTURE_SIDE_LENGTH: usize = 2048;
 const PADDING: usize = 1;
 const MINITILE_SIDE_LENGTH_WITH_PADDING: usize =
     (map::MINITILE_PX_SIDE_LEN + (PADDING as u32) * 2) as usize;
 
-pub fn create(
-    params: (
-        &mut World,
-        &Handle<Map>,
-        &TilesetHandles,
-        &mut ProgressCounter,
-    ),
-) {
-    let (world, map_handle, tileset_handles, progress_counter) = params;
+pub fn create(params: (&mut World, &Handle<Map>, &mut ProgressCounter)) {
+    let (world, map_handle, progress_counter) = params;
 
-    let tilemap_texture_handle = load_map_texture(world, tileset_handles, progress_counter);
-    let sprite_sheet_handle = load_sprite_sheet_handle(
-        world,
-        tileset_handles,
-        progress_counter,
-        tilemap_texture_handle,
-    );
+    let tilemap_texture_handle = load_map_texture(world, progress_counter);
+    let sprite_sheet_handle =
+        load_sprite_sheet_handle(world, progress_counter, tilemap_texture_handle);
 
     let tilemap = {
         let map_storage = world.read_resource::<AssetStorage<Map>>();
@@ -72,17 +60,12 @@ pub fn create(
 
 fn load_sprite_sheet_handle(
     world: &World,
-    tileset_handles: &TilesetHandles,
     progress_counter: &mut ProgressCounter,
     tilemap_texture_handle: Handle<Texture>,
 ) -> Handle<SpriteSheet> {
     let loader = world.read_resource::<Loader>();
 
-    let vr4s_storage = world.read_resource::<AssetStorage<VR4s>>();
-    let vr4s = vr4s_storage
-        .get(&tileset_handles.vr4s)
-        .expect("tileset vr4s is missing")
-        .clone();
+    let vr4s = (*world.try_fetch::<Arc<VR4s>>().expect("vr4s is missing")).clone();
 
     loader.load_from_data_async(
         move || create_tilemap_sprite_sheet(tilemap_texture_handle, vr4s),
@@ -91,24 +74,11 @@ fn load_sprite_sheet_handle(
     )
 }
 
-fn load_map_texture(
-    world: &World,
-    tileset_handles: &TilesetHandles,
-    progress_counter: &mut ProgressCounter,
-) -> Handle<Texture> {
+fn load_map_texture(world: &World, progress_counter: &mut ProgressCounter) -> Handle<Texture> {
     let loader = world.read_resource::<Loader>();
 
-    let vr4s_storage = world.read_resource::<AssetStorage<VR4s>>();
-    let vr4s = vr4s_storage
-        .get(&tileset_handles.vr4s)
-        .expect("vr4s is missing")
-        .clone();
-
-    let wpes_storage = world.read_resource::<AssetStorage<WPEs>>();
-    let wpes = wpes_storage
-        .get(&tileset_handles.wpes)
-        .expect("wpes is missing")
-        .clone();
+    let vr4s = (*world.try_fetch::<Arc<VR4s>>().expect("vr4s is missing")).clone();
+    let wpes = (*world.try_fetch::<Arc<WPEs>>().expect("wpes is missing")).clone();
 
     loader.load_from_data_async(
         move || {
@@ -149,7 +119,7 @@ fn load_map_texture(
     )
 }
 
-fn create_tilemap_sprite_sheet(texture: Handle<Texture>, vr4s: VR4s) -> SpriteSheet {
+fn create_tilemap_sprite_sheet(texture: Handle<Texture>, vr4s: Arc<VR4s>) -> SpriteSheet {
     use rayon::prelude::*;
 
     let sprite_count = vr4s.len();
@@ -204,7 +174,7 @@ fn create_tilemap_sprite_sheet(texture: Handle<Texture>, vr4s: VR4s) -> SpriteSh
     SpriteSheet { texture, sprites }
 }
 
-fn create_map_texture_pixels(vr4s: VR4s, wpes: WPEs) -> Vec<u8> {
+fn create_map_texture_pixels(vr4s: Arc<VR4s>, wpes: Arc<WPEs>) -> Vec<u8> {
     use rayon::prelude::*;
 
     let img_buffer = UnsafeImageBufferCell(UnsafeCell::new(

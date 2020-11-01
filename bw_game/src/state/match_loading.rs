@@ -124,9 +124,6 @@ impl SimpleState for MatchLoadingState {
 
                     // To be used in the `Tile` trait.
                     world.insert(map_handle.clone());
-                    // Handle needs to be an Option for ReadStorage because it
-                    // must implement default.
-                    world.insert(Some(map_handle.clone()));
 
                     self.map_assets_loading_state = MapAssetsLoadingState::Map(map_handle);
 

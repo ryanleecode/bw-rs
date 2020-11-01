@@ -1,6 +1,6 @@
 use crate::{
     config::BWConfig,
-    graphics::ui::{Minimap, MinimapMarker},
+    graphics::ui::{resources::load_dats, Minimap, MinimapMarker},
 };
 
 use crate::graphics::{self};
@@ -110,11 +110,13 @@ impl SimpleState for MatchLoadingState {
                         mpq_source
                     };
 
+
                     {
                         let mut loader = world.write_resource::<Loader>();
                         loader.add_source("bw_assets", mpq_source);
                     }
 
+                    load_dats(world, &mut self.progress_counter);
                     let map_handle = world.read_resource::<Loader>().load(
                         format!("maps/{}", self.config.map),
                         MapFormat,

@@ -5,6 +5,7 @@ use amethyst::{
     prelude::*,
     ui::{FontAsset, TtfFormat},
 };
+use bw_assets::dat::{UnitDatFormat, UnitDatHandle};
 
 #[derive(Clone)]
 pub struct Fonts {
@@ -42,4 +43,18 @@ pub fn load_fonts(world: &mut World, progress_counter: &mut ProgressCounter) {
     };
 
     world.insert(fonts);
+}
+
+pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) {
+    let mut progress_counter_newtype = ProgressCounterMutRef::new(progress_counter);
+
+    let units_dat: UnitDatHandle = world.read_resource::<Loader>().load_from(
+        "arr\\units.dat",
+        UnitDatFormat,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource(),
+    );
+
+    world.insert(units_dat);
 }

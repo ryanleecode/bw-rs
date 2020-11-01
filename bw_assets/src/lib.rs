@@ -10,6 +10,7 @@ extern crate derive_builder;
 #[cfg(test)]
 extern crate maplit;
 
+pub mod dat;
 pub mod map;
 pub mod mpq;
 pub mod tileset;

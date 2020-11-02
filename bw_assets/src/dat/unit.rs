@@ -11,7 +11,7 @@ use nom::{
     multi::count,
     number::complete::{le_u8, le_u16, le_u32},
     sequence::tuple,
-    IResult, InputIter, InputTake,
+    Finish, IResult, InputIter, InputTake, Parser,
 };
 use struple::Struple;
 
@@ -318,7 +318,13 @@ impl Format<UnitDatAsset> for UnitDatFormat {
     }
 
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<UnitDatAsset> {
-        let (_, unit_dat) = parse_unit_dat(&b).map_err(|err| err.to_owned())?;
+        let (_, unit_dat) = parse_unit_dat(&b).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load units.dat asset: {} at {}",
+                err.code.description(),
+                b.len() - err.input.len()
+            )
+        })?;
 
         Ok(UnitDatAsset(Some(unit_dat)))
     }
@@ -351,28 +357,28 @@ fn u32_to_f32(x: u32, decimal_places: u32) -> f32 {
     whole + decimals
 }
 
-fn count_building_block<I, O, E, F>(f: F) -> impl Fn(I) -> IResult<I, Vec<O>, E>
+fn count_building_block<I, O, E, F>(f: F) -> impl FnMut(I) -> IResult<I, Vec<O>, E>
 where
     I: Clone + PartialEq + InputIter + InputTake,
-    F: Fn(I) -> IResult<I, O, E> + Clone,
+    F: Parser<I, O, E> + Clone,
     E: ParseError<I>,
 {
     count(f, BUILDING_COUNT)
 }
 
-fn count_unit_block<I, O, E, F>(f: F) -> impl Fn(I) -> IResult<I, Vec<O>, E>
+fn count_unit_block<I, O, E, F>(f: F) -> impl FnMut(I) -> IResult<I, Vec<O>, E>
 where
     I: Clone + PartialEq + InputIter + InputTake,
-    F: Fn(I) -> IResult<I, O, E>,
+    F: Parser<I, O, E>,
     E: ParseError<I>,
 {
     count(f, UNIT_COUNT)
 }
 
-pub fn count_total<I, O, E, F>(f: F) -> impl Fn(I) -> IResult<I, Vec<O>, E>
+pub fn count_total<I, O, E, F>(f: F) -> impl FnMut(I) -> IResult<I, Vec<O>, E>
 where
     I: Clone + PartialEq,
-    F: Fn(I) -> IResult<I, O, E>,
+    F: Parser<I, O, E>,
     E: ParseError<I>,
 {
     count(f, BLOCK_SIZE)

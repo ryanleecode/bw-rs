@@ -4,6 +4,7 @@ use amethyst::{
     ecs::DenseVecStorage,
 };
 use bw_core::{Controllers, Unit};
+use nom::Finish;
 
 mod chk;
 
@@ -87,7 +88,13 @@ impl Format<Map> for MapFormat {
 
         let mut map_builder = MapBuilder::default();
 
-        let (_, chunks) = chk::parse_chunks(&chunk_bytes).map_err(|err| err.to_owned())?;
+        let (_, chunks) = chk::parse_chunks(&chunk_bytes).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load chunks: {} at {}",
+                err.code.description(),
+                chunk_bytes.len() - err.input.len()
+            )
+        })?;
 
         chunks.into_iter().for_each(|chunk| match chunk {
             chk::Chunk::ScenarioType(scenario_type) => {

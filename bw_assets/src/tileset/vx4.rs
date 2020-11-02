@@ -10,7 +10,7 @@ use nom::{
     multi::count,
     multi::many0,
     number::complete::le_u16,
-    IResult,
+    Finish, IResult,
 };
 
 use super::MinitileReference;
@@ -94,8 +94,14 @@ impl Format<VX4sAsset> for VX4sAssetFormat {
         "VX4Format"
     }
 
-    fn import_simple(&self, bytes: Vec<u8>) -> amethyst::Result<VX4sAsset> {
-        let (_, vx4s) = parse_vx4s(&bytes).map_err(|err| err.to_owned())?;
+    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<VX4sAsset> {
+        let (_, vx4s) = parse_vx4s(&b).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load vx4 asset: {} at {}",
+                err.code.description(),
+                b.len() - err.input.len()
+            )
+        })?;
 
         Ok(VX4sAsset(Some(vx4s)))
     }

@@ -3,7 +3,6 @@ use amethyst::{
     assets::{Asset, Format, Handle},
     ecs::DenseVecStorage,
 };
-use nom::IResult;
 use nom::{
     bytes::complete::take,
     combinator::{all_consuming, map},
@@ -11,6 +10,7 @@ use nom::{
     number::complete::{le_u8, le_u16},
     sequence::{preceded, tuple},
 };
+use nom::{Finish, IResult};
 
 use std::ops::Index;
 
@@ -286,8 +286,14 @@ impl Format<CV5sAsset> for CV5Format {
         "CV5Format"
     }
 
-    fn import_simple(&self, bytes: Vec<u8>) -> amethyst::Result<CV5sAsset> {
-        let (_, cv5s) = parse_cv5s(&bytes).map_err(|err| err.to_owned())?;
+    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<CV5sAsset> {
+        let (_, cv5s) = parse_cv5s(&b).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load cv5 asset: {} at {}",
+                err.code.description(),
+                b.len() - err.input.len()
+            )
+        })?;
 
         Ok(CV5sAsset(Some(cv5s)))
     }

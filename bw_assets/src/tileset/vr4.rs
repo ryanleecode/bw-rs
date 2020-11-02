@@ -2,12 +2,12 @@ use amethyst::{
     assets::{Asset, Format, Handle},
     ecs::DenseVecStorage,
 };
-use nom::IResult;
 use nom::{
     combinator::{all_consuming, map},
     multi::{count, many0},
     number::complete::le_u8,
 };
+use nom::{Finish, IResult};
 
 use rayon::prelude::*;
 use std::ops::Index;
@@ -110,8 +110,14 @@ impl Format<VR4sAsset> for VR4Format {
         "VR4Format"
     }
 
-    fn import_simple(&self, bytes: Vec<u8>) -> amethyst::Result<VR4sAsset> {
-        let (_, vr4s) = parse_vr4s(&bytes).map_err(|err| err.to_owned())?;
+    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<VR4sAsset> {
+        let (_, vr4s) = parse_vr4s(&b).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load vr4 asset: {} at {}",
+                err.code.description(),
+                b.len() - err.input.len()
+            )
+        })?;
 
         Ok(VR4sAsset(Some(vr4s)))
     }

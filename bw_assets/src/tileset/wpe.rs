@@ -2,13 +2,13 @@ use amethyst::{
     assets::{Asset, Format, Handle},
     ecs::DenseVecStorage,
 };
-use nom::IResult;
 use nom::{
     combinator::{all_consuming, map},
     multi::many0,
     number::complete::le_u8,
     sequence::tuple,
 };
+use nom::{Finish, IResult};
 
 use std::ops::Index;
 
@@ -105,8 +105,14 @@ impl Format<WPEsAsset> for WPEFormat {
         "WPEFormat"
     }
 
-    fn import_simple(&self, bytes: Vec<u8>) -> amethyst::Result<WPEsAsset> {
-        let (_, wpes) = parse_wpes(&bytes).map_err(|err| err.to_owned())?;
+    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<WPEsAsset> {
+        let (_, wpes) = parse_wpes(&b).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load wpe asset: {} at {}",
+                err.code.description(),
+                b.len() - err.input.len()
+            )
+        })?;
 
         Ok(WPEsAsset(Some(wpes)))
     }

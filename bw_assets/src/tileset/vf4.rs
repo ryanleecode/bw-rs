@@ -2,12 +2,12 @@ use amethyst::{
     assets::{Asset, Format, Handle},
     ecs::DenseVecStorage,
 };
-use nom::IResult;
 use nom::{
     combinator::{all_consuming, map},
     multi::{count, many0},
     number::complete::le_u16,
 };
+use nom::{Finish, IResult};
 use std::ops::Index;
 
 use super::MinitileReference;
@@ -103,8 +103,14 @@ impl Format<VF4sAsset> for VF4Format {
         "VF4Format"
     }
 
-    fn import_simple(&self, bytes: Vec<u8>) -> amethyst::Result<VF4sAsset> {
-        let (_, vf4s) = parse_vf4s(&bytes).map_err(|err| err.to_owned())?;
+    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<VF4sAsset> {
+        let (_, vf4s) = parse_vf4s(&b).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load vf4 asset: {} at {}",
+                err.code.description(),
+                b.len() - err.input.len()
+            )
+        })?;
 
         Ok(VF4sAsset(Some(vf4s)))
     }

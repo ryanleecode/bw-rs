@@ -4,10 +4,12 @@ use amethyst::{
     ecs::DenseVecStorage,
 };
 use nom::{
+    bytes::complete::take,
+    combinator::all_consuming,
     error::ParseError,
     multi::count,
     number::complete::{le_u8, le_u16, le_u32},
-    IResult,
+    Finish, IResult, Parser,
 };
 
 #[derive(Debug)]
@@ -47,7 +49,13 @@ impl Format<FlingyDatAsset> for FlingyDatFormat {
     }
 
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<FlingyDatAsset> {
-        let (_, flingy_dat) = parse_flingy_dat(&b).map_err(|err| err.to_owned())?;
+        let (_, flingy_dat) = parse_flingy_dat(&b).finish().map_err(|err| {
+            amethyst::error::format_err!(
+                "failed to load flingy.dat asset: {} at {}",
+                err.code.description(),
+                b.len() - err.input.len()
+            )
+        })?;
 
 
         Ok(FlingyDatAsset(Some(flingy_dat)))
@@ -56,10 +64,10 @@ impl Format<FlingyDatAsset> for FlingyDatFormat {
 
 const BLOCK_SIZE: usize = 209;
 
-pub fn count_total<I, O, E, F>(f: F) -> impl Fn(I) -> IResult<I, Vec<O>, E>
+pub fn count_total<I, O, E, F>(f: F) -> impl FnMut(I) -> IResult<I, Vec<O>, E>
 where
     I: Clone + PartialEq,
-    F: Fn(I) -> IResult<I, O, E>,
+    F: Parser<I, O, E>,
     E: ParseError<I>,
 {
     count(f, BLOCK_SIZE)
@@ -76,6 +84,8 @@ fn parse_flingy_dat(b: &[u8]) -> IResult<&[u8], FlingyDat> {
     let (remaining, _) = count_total(le_u8)(remaining)?;
 
     let (remaining, move_control_col) = count_total(le_u8)(remaining)?;
+
+    all_consuming(take(0u8))(remaining)?;
 
     let flingies = (0..BLOCK_SIZE)
         .map(|i| Flingy {

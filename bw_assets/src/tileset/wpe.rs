@@ -108,7 +108,7 @@ impl Format<WPEsAsset> for WPEFormat {
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<WPEsAsset> {
         let (_, wpes) = parse_wpes(&b).finish().map_err(|err| {
             amethyst::error::format_err!(
-                "failed to load wpe asset: {} at {}",
+                "failed to load wpe asset: {} at position {}",
                 err.code.description(),
                 b.len() - err.input.len()
             )

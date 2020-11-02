@@ -90,7 +90,7 @@ impl Format<Map> for MapFormat {
 
         let (_, chunks) = chk::parse_chunks(&chunk_bytes).finish().map_err(|err| {
             amethyst::error::format_err!(
-                "failed to load chunks: {} at {}",
+                "failed to load chunks: {} at position {}",
                 err.code.description(),
                 chunk_bytes.len() - err.input.len()
             )

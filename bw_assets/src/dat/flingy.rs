@@ -51,7 +51,7 @@ impl Format<FlingyDatAsset> for FlingyDatFormat {
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<FlingyDatAsset> {
         let (_, flingy_dat) = parse_flingy_dat(&b).finish().map_err(|err| {
             amethyst::error::format_err!(
-                "failed to load flingy.dat asset: {} at {}",
+                "failed to load flingy.dat asset: {} at position {}",
                 err.code.description(),
                 b.len() - err.input.len()
             )

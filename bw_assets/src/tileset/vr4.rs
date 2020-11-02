@@ -113,7 +113,7 @@ impl Format<VR4sAsset> for VR4Format {
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<VR4sAsset> {
         let (_, vr4s) = parse_vr4s(&b).finish().map_err(|err| {
             amethyst::error::format_err!(
-                "failed to load vr4 asset: {} at {}",
+                "failed to load vr4 asset: {} at position {}",
                 err.code.description(),
                 b.len() - err.input.len()
             )

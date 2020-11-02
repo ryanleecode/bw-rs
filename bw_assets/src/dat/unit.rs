@@ -320,7 +320,7 @@ impl Format<UnitDatAsset> for UnitDatFormat {
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<UnitDatAsset> {
         let (_, unit_dat) = parse_unit_dat(&b).finish().map_err(|err| {
             amethyst::error::format_err!(
-                "failed to load units.dat asset: {} at {}",
+                "failed to load units.dat asset: {} at position {}",
                 err.code.description(),
                 b.len() - err.input.len()
             )

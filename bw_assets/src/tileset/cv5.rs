@@ -289,7 +289,7 @@ impl Format<CV5sAsset> for CV5Format {
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<CV5sAsset> {
         let (_, cv5s) = parse_cv5s(&b).finish().map_err(|err| {
             amethyst::error::format_err!(
-                "failed to load cv5 asset: {} at {}",
+                "failed to load cv5 asset: {} at position {}",
                 err.code.description(),
                 b.len() - err.input.len()
             )

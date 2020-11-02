@@ -97,7 +97,7 @@ impl Format<VX4sAsset> for VX4sAssetFormat {
     fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<VX4sAsset> {
         let (_, vx4s) = parse_vx4s(&b).finish().map_err(|err| {
             amethyst::error::format_err!(
-                "failed to load vx4 asset: {} at {}",
+                "failed to load vx4 asset: {} at position {}",
                 err.code.description(),
                 b.len() - err.input.len()
             )

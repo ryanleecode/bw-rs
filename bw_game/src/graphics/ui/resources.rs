@@ -5,7 +5,7 @@ use amethyst::{
     prelude::*,
     ui::{FontAsset, TtfFormat},
 };
-use bw_assets::dat::{UnitDatAsset, UnitDatFormat, UnitDatHandle};
+use bw_assets::dat::{FlingyDatAsset, FlingyDatFormat, UnitDatAsset, UnitDatFormat, UnitDatHandle};
 
 #[derive(Clone)]
 pub struct Fonts {
@@ -47,7 +47,8 @@ pub fn load_fonts(world: &mut World, progress_counter: &mut ProgressCounter) {
 
 #[derive(Debug, Clone)]
 pub struct DatHandles {
-    pub unit_dat: Handle<UnitDatAsset>,
+    pub units_dat: Handle<UnitDatAsset>,
+    pub flingy_dat: Handle<FlingyDatAsset>,
 }
 
 pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> DatHandles {
@@ -61,7 +62,16 @@ pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> D
         &world.read_resource(),
     );
 
+    let flingy_dat = world.read_resource::<Loader>().load_from(
+        "arr\\flingy.dat",
+        FlingyDatFormat,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource(),
+    );
+
     DatHandles {
-        unit_dat: units_dat,
+        units_dat,
+        flingy_dat,
     }
 }

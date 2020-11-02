@@ -20,7 +20,7 @@ use amethyst::{
 };
 use bw_assets::{
     dat::UnitDat,
-    dat::UnitDatAsset,
+    dat::{FlingyDat, FlingyDatAsset, UnitDatAsset},
     map::{Map, MapFormat, MapHandle},
     mpq::MPQHandle,
     mpq::{self, ArcMPQ},
@@ -161,14 +161,23 @@ impl SimpleState for MatchLoadingState {
             self.dat_handles = Some(load_dats(world, &mut self.progress_counter));
         }
 
-        if let (Some(dat_handles), false) = (&self.dat_handles, world.has_value::<UnitDat>()) {
-            if !world.has_value::<Arc<UnitDat>>() {
-                let unit_dat_opt = world
+        if let Some(dat_handles) = &self.dat_handles {
+            if !world.has_value::<UnitDat>() {
+                let units_dat_opt = world
                     .write_resource::<AssetStorage<UnitDatAsset>>()
-                    .get_mut(&dat_handles.unit_dat)
+                    .get_mut(&dat_handles.units_dat)
                     .and_then(|asset| asset.take());
-                if let Some(unit_dat) = unit_dat_opt {
-                    world.insert(unit_dat);
+                if let Some(units_dat) = units_dat_opt {
+                    world.insert::<UnitDat>(units_dat);
+                }
+            }
+            if !world.has_value::<FlingyDat>() {
+                let flingy_dat_opt = world
+                    .write_resource::<AssetStorage<FlingyDatAsset>>()
+                    .get_mut(&dat_handles.flingy_dat)
+                    .and_then(|asset| asset.take());
+                if let Some(flingy_dat) = flingy_dat_opt {
+                    world.insert::<FlingyDat>(flingy_dat);
                 }
             }
         }

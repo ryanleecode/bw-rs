@@ -2,7 +2,7 @@ use crate::{
     config::BWConfig,
     graphics::{
         tile::TilesetHandles,
-        ui::{resources::load_dats, Minimap, MinimapMarker},
+        ui::{resources::load_dats, resources::DatHandles, Minimap, MinimapMarker},
     },
 };
 
@@ -11,6 +11,7 @@ use amethyst::{
     assets::{AssetStorage, Completion, Handle, Loader, ProgressCounter},
     core::Transform,
     ecs::storage::MaskedStorage,
+    ecs::Entity,
     prelude::*,
     renderer::ActiveCamera,
     renderer::Camera,
@@ -18,28 +19,36 @@ use amethyst::{
     SimpleState, SimpleTrans,
 };
 use bw_assets::{
+    dat::UnitDat,
+    dat::UnitDatAsset,
     map::{Map, MapFormat, MapHandle},
+    mpq::MPQHandle,
     mpq::{self, ArcMPQ},
+    tileset::CV5s,
     tileset::VR4sAsset,
-    tileset::{CV5sAsset, VF4sAsset, WPEsAsset},
+    tileset::{CV5sAsset, VF4s, VF4sAsset, VR4s, VX4s, WPEs, WPEsAsset},
 };
 use bw_assets::{mpq::MPQSource, tileset::VX4sAsset};
 use log::{error, info, warn};
 use std::{path::PathBuf, sync::Arc};
 
-pub enum MapAssetsLoadingState {
-    Idle,
-    BWAssets(Vec<Handle<ArcMPQ>>),
-    Map(MapHandle),
-    Prefabs(TilesetHandles, MapHandle),
-    Tileset(MapHandle),
-    Done,
+pub struct MPQHandles {
+    stardat: MPQHandle,
+    broodat: MPQHandle,
+    patchrt: MPQHandle,
 }
 
 pub struct MatchLoadingState {
     assets_dir: PathBuf,
+    mpq_handles: Option<MPQHandles>,
+    are_mpqs_loaded: bool,
+    are_tilesets_loaded: bool,
+    are_graphics_loaded: bool,
+    tileset_handles: Option<TilesetHandles>,
+    dat_handles: Option<DatHandles>,
+    map_handle: Option<MapHandle>,
+    ui: Option<Entity>,
     progress_counter: ProgressCounter,
-    map_assets_loading_state: MapAssetsLoadingState,
     config: BWConfig,
 }
 
@@ -48,14 +57,21 @@ impl MatchLoadingState {
         MatchLoadingState {
             assets_dir,
             config,
-            map_assets_loading_state: MapAssetsLoadingState::Idle,
-            progress_counter: ProgressCounter::new(),
+            mpq_handles: None,
+            tileset_handles: None,
+            are_mpqs_loaded: false,
+            are_tilesets_loaded: false,
+            are_graphics_loaded: false,
+            dat_handles: None,
+            map_handle: None,
+            ui: None,
+            progress_counter: ProgressCounter::default(),
         }
     }
 }
 
 impl MatchLoadingState {
-    fn load_mpq(&mut self, world: &mut World, path: &str) -> Handle<ArcMPQ> {
+    fn load_mpq(&mut self, world: &mut World, path: &str) -> MPQHandle {
         let mpq_asset_path = self.assets_dir.join(path);
         let loader = world.read_resource::<Loader>();
 
@@ -69,6 +85,17 @@ impl MatchLoadingState {
             &mut self.progress_counter,
             &world.read_resource::<AssetStorage<ArcMPQ>>(),
         )
+    }
+
+    fn is_complete(&self) -> bool {
+        self.mpq_handles.is_some()
+            && self.are_mpqs_loaded
+            && self.are_tilesets_loaded
+            && self.are_graphics_loaded
+            && self.tileset_handles.is_some()
+            && self.map_handle.is_some()
+            && self.ui.is_some()
+            && self.progress_counter.is_complete()
     }
 }
 
@@ -86,153 +113,165 @@ impl SimpleState for MatchLoadingState {
     fn update(&mut self, data: &mut StateData<'_, GameData<'_, '_>>) -> SimpleTrans {
         let StateData { world, .. } = data;
 
-        match self.progress_counter.complete() {
-            Completion::Complete => match &self.map_assets_loading_state {
-                MapAssetsLoadingState::Idle => {
-                    self.map_assets_loading_state = MapAssetsLoadingState::BWAssets(vec![
-                        self.load_mpq(world, "STARDAT.MPQ"),
-                        self.load_mpq(world, "BROODAT.MPQ"),
-                        self.load_mpq(world, "patch_rt.mpq"),
-                    ]);
+        if self.ui.is_none() {
+            let progress_counter = &mut self.progress_counter;
+            self.ui =
+                Some(world.exec(|mut creator: UiCreator<'_>| {
+                    creator.create("ui/hud.ron", progress_counter)
+                }));
+        }
 
-                    Trans::None
-                }
-                MapAssetsLoadingState::BWAssets(mpq_handles) => {
-                    let mpq_source = {
-                        let mut mpq_source = MPQSource::new();
-                        let mpq_storage = world.read_resource::<AssetStorage<ArcMPQ>>();
+        if self.mpq_handles.is_none() {
+            self.mpq_handles = Some(MPQHandles {
+                stardat: self.load_mpq(world, "STARDAT.MPQ"),
+                broodat: self.load_mpq(world, "BROODAT.MPQ"),
+                patchrt: self.load_mpq(world, "patch_rt.mpq"),
+            });
+        }
 
-                        mpq_handles
-                            .into_iter()
-                            .map(|handle| {
-                                mpq_storage
-                                    .get(handle)
-                                    .expect("mpq resource is missing")
-                                    .clone()
-                            })
-                            .for_each(|mpq| mpq_source.push_front(mpq.clone()));
-
-                        mpq_source
-                    };
-
-
-                    {
-                        let mut loader = world.write_resource::<Loader>();
-                        loader.add_source("bw_assets", mpq_source);
-                    }
-
-                    load_dats(world, &mut self.progress_counter);
-                    let map_handle = world.read_resource::<Loader>().load(
-                        format!("maps/{}", self.config.map),
-                        MapFormat,
-                        &mut self.progress_counter,
-                        &world.read_resource::<AssetStorage<Map>>(),
-                    );
-
-                    // To be used in the `Tile` trait.
-                    world.insert(map_handle.clone());
-
-                    self.map_assets_loading_state = MapAssetsLoadingState::Map(map_handle);
-
-                    Trans::None
-                }
-                MapAssetsLoadingState::Map(map_handle) => {
-                    let tileset_handles = graphics::tile::resources::load(
-                        world,
-                        map_handle.clone(),
-                        &mut self.progress_counter,
-                    );
-
-                    self.map_assets_loading_state =
-                        MapAssetsLoadingState::Prefabs(tileset_handles, (*map_handle).clone());
-
-                    Trans::None
-                }
-                MapAssetsLoadingState::Prefabs(tileset_handles, map_handle) => {
-                    {
-                        let cv5s = world
-                            .write_resource::<AssetStorage<CV5sAsset>>()
-                            .get_mut(&tileset_handles.cv5s)
-                            .and_then(|asset| asset.take())
-                            .expect("cv5s is missing");
-                        world.insert(Arc::new(cv5s));
-                    }
-
-                    {
-                        let vf4s = world
-                            .write_resource::<AssetStorage<VF4sAsset>>()
-                            .get_mut(&tileset_handles.vf4s)
-                            .and_then(|asset| asset.take())
-                            .expect("vf4s is missing");
-                        world.insert(Arc::new(vf4s));
-                    }
-
-                    {
-                        let vr4s = world
-                            .write_resource::<AssetStorage<VR4sAsset>>()
-                            .get_mut(&tileset_handles.vr4s)
-                            .and_then(|asset| asset.take())
-                            .expect("vr4s is missing");
-                        world.insert(Arc::new(vr4s));
-                    }
-
-
-                    {
-                        let vx4s = world
-                            .write_resource::<AssetStorage<VX4sAsset>>()
-                            .get_mut(&tileset_handles.vx4s)
-                            .and_then(|asset| asset.take())
-                            .expect("vx4s is missing");
-                        world.insert(Arc::new(vx4s));
-                    }
-
-                    {
-                        let wpes = world
-                            .write_resource::<AssetStorage<WPEsAsset>>()
-                            .get_mut(&tileset_handles.wpes)
-                            .and_then(|asset| asset.take())
-                            .expect("wpes is missing");
-                        world.insert(Arc::new(wpes));
-                    }
-
-                    let progress_counter = &mut self.progress_counter;
-                    world.exec(|mut creator: UiCreator<'_>| {
-                        creator.create("ui/hud.ron", progress_counter);
-                    });
-
-                    self.map_assets_loading_state =
-                        MapAssetsLoadingState::Tileset(map_handle.clone());
-
-                    Trans::None
-                }
-                MapAssetsLoadingState::Tileset(map_handle) => {
-                    graphics::create((world, map_handle, &mut self.progress_counter));
-
-                    initialize_camera(world, map_handle);
-
-                    self.map_assets_loading_state = MapAssetsLoadingState::Done;
-
-                    Trans::None
-                }
-                MapAssetsLoadingState::Done => {
-                    Trans::Switch(Box::new(super::GameplayState::default()))
-                }
-            },
-            Completion::Failed => {
-                for err_meta in self.progress_counter.errors() {
-                    warn!(
-                        "Failed to load asset: {} of type {}: {} {:#?}",
-                        err_meta.asset_name,
-                        err_meta.asset_type_name,
-                        err_meta.error,
-                        err_meta.error.causes()
-                    );
-                }
-                error!("Failed to initialize game.");
-
-                Trans::Quit
+        if let Some(mpq_handles) = &self.mpq_handles {
+            let mpq_storage = world.read_resource::<AssetStorage<ArcMPQ>>();
+            if let (Some(stardat), Some(broodat), Some(patchrt)) = (
+                mpq_storage.get(&mpq_handles.stardat),
+                mpq_storage.get(&mpq_handles.broodat),
+                mpq_storage.get(&mpq_handles.patchrt),
+            ) {
+                let mut mpq_source = MPQSource::new();
+                mpq_source.push_front(stardat.clone());
+                mpq_source.push_front(broodat.clone());
+                mpq_source.push_front(patchrt.clone());
+                let mut loader = world.write_resource::<Loader>();
+                loader.add_source("bw_assets", mpq_source);
+                self.are_mpqs_loaded = true;
             }
-            Completion::Loading => Trans::None,
+        }
+
+        if self.map_handle.is_none() && self.are_mpqs_loaded {
+            let map_handle = world.read_resource::<Loader>().load(
+                format!("maps/{}", self.config.map),
+                MapFormat,
+                &mut self.progress_counter,
+                &world.read_resource::<AssetStorage<Map>>(),
+            );
+            world.insert(map_handle.clone());
+            self.map_handle = Some(map_handle);
+        }
+
+        if self.dat_handles.is_none() && self.are_mpqs_loaded {
+            self.dat_handles = Some(load_dats(world, &mut self.progress_counter));
+        }
+
+        if let (Some(dat_handles), false) = (&self.dat_handles, world.has_value::<UnitDat>()) {
+            if !world.has_value::<Arc<UnitDat>>() {
+                let unit_dat_opt = world
+                    .write_resource::<AssetStorage<UnitDatAsset>>()
+                    .get_mut(&dat_handles.unit_dat)
+                    .and_then(|asset| asset.take());
+                if let Some(unit_dat) = unit_dat_opt {
+                    world.insert(unit_dat);
+                }
+            }
+        }
+
+        if let (Some(map_handle), None) = (&self.map_handle, &self.tileset_handles) {
+            let tileset_handles = graphics::tile::resources::load(
+                world,
+                map_handle.clone(),
+                &mut self.progress_counter,
+            );
+
+            self.tileset_handles = tileset_handles;
+        }
+
+        if let (Some(tileset_handles), false) = (&self.tileset_handles, self.are_tilesets_loaded) {
+            if !world.has_value::<Arc<CV5s>>() {
+                let cv5s_opt = world
+                    .write_resource::<AssetStorage<CV5sAsset>>()
+                    .get_mut(&tileset_handles.cv5s)
+                    .and_then(|asset| asset.take())
+                    .map(Arc::new);
+                if let Some(cv5s) = cv5s_opt {
+                    world.insert::<Arc<CV5s>>(cv5s);
+                }
+            }
+            if !world.has_value::<Arc<VF4s>>() {
+                let vf4s_opt = world
+                    .write_resource::<AssetStorage<VF4sAsset>>()
+                    .get_mut(&tileset_handles.vf4s)
+                    .and_then(|asset| asset.take())
+                    .map(Arc::new);
+                if let Some(vf4s) = vf4s_opt {
+                    world.insert::<Arc<VF4s>>(vf4s);
+                }
+            }
+            if !world.has_value::<Arc<VR4s>>() {
+                let vr4s_opt = world
+                    .write_resource::<AssetStorage<VR4sAsset>>()
+                    .get_mut(&tileset_handles.vr4s)
+                    .and_then(|asset| asset.take())
+                    .map(Arc::new);
+                if let Some(vr4s) = vr4s_opt {
+                    world.insert::<Arc<VR4s>>(vr4s);
+                }
+            }
+            if !world.has_value::<Arc<VX4s>>() {
+                let vx4s_opt = world
+                    .write_resource::<AssetStorage<VX4sAsset>>()
+                    .get_mut(&tileset_handles.vx4s)
+                    .and_then(|asset| asset.take())
+                    .map(Arc::new);
+                if let Some(vx4s) = vx4s_opt {
+                    world.insert::<Arc<VX4s>>(vx4s);
+                }
+            }
+            if !world.has_value::<Arc<WPEs>>() {
+                let wpes_opts = world
+                    .write_resource::<AssetStorage<WPEsAsset>>()
+                    .get_mut(&tileset_handles.wpes)
+                    .and_then(|asset| asset.take())
+                    .map(Arc::new);
+                if let Some(wpes) = wpes_opts {
+                    world.insert::<Arc<WPEs>>(wpes);
+                }
+            }
+
+            self.are_tilesets_loaded = world.has_value::<Arc<CV5s>>()
+                && world.has_value::<Arc<VF4s>>()
+                && world.has_value::<Arc<VR4s>>()
+                && world.has_value::<Arc<VX4s>>()
+                && world.has_value::<Arc<WPEs>>()
+        }
+
+        if let Some(map_handle) = &self.map_handle {
+            initialize_camera(world, map_handle);
+        }
+
+        if let (Some(map_handle), true, false) = (
+            &self.map_handle,
+            self.are_tilesets_loaded,
+            self.are_graphics_loaded,
+        ) {
+            graphics::create((world, map_handle, &mut self.progress_counter));
+            self.are_graphics_loaded = true
+        }
+
+        if Completion::Failed == self.progress_counter.complete() {
+            for err_meta in self.progress_counter.errors() {
+                warn!(
+                    "Failed to load asset: {} of type {}: {} {:#?}",
+                    err_meta.asset_name,
+                    err_meta.asset_type_name,
+                    err_meta.error,
+                    err_meta.error.causes()
+                );
+            }
+            error!("Failed to initialize game.");
+
+            Trans::Quit
+        } else if self.is_complete() {
+            Trans::Push(Box::new(super::GameplayState::default()))
+        } else {
+            Trans::None
         }
     }
 }

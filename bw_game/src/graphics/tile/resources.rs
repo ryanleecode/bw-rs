@@ -24,63 +24,59 @@ pub fn load(
     world: &mut World,
     map_handle: MapHandle,
     progress_counter: &mut ProgressCounter,
-) -> TilesetHandles {
-    let tileset_handles = {
-        let map_storage = world.read_resource::<AssetStorage<Map>>();
-        let loader = world.read_resource::<Loader>();
-        let map = map_storage.get(&map_handle).expect("map should be loaded");
-        let tileset_file_name = map.tileset.file_name();
+) -> Option<TilesetHandles> {
+    let map_storage = world.read_resource::<AssetStorage<Map>>();
+    let loader = world.read_resource::<Loader>();
+    let map = map_storage.get(&map_handle)?;
+    let tileset_file_name = map.tileset.file_name();
 
-        let mut progress_counter_newtype = ProgressCounterMutRef::new(progress_counter);
+    let mut progress_counter_newtype = ProgressCounterMutRef::new(progress_counter);
 
-        let vx4_handle = loader.load_from(
-            format!("tileset\\{}.vx4", tileset_file_name),
-            VX4sAssetFormat,
-            "bw_assets",
-            &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<VX4sAsset>>(),
-        );
+    let vx4_handle = loader.load_from(
+        format!("tileset\\{}.vx4", tileset_file_name),
+        VX4sAssetFormat,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource::<AssetStorage<VX4sAsset>>(),
+    );
 
-        let vr4_handle = loader.load_from(
-            format!("tileset\\{}.vr4", tileset_file_name),
-            VR4Format,
-            "bw_assets",
-            &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<VR4sAsset>>(),
-        );
+    let vr4_handle = loader.load_from(
+        format!("tileset\\{}.vr4", tileset_file_name),
+        VR4Format,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource::<AssetStorage<VR4sAsset>>(),
+    );
 
-        let vf4_handle = loader.load_from(
-            format!("tileset\\{}.vf4", tileset_file_name),
-            VF4Format,
-            "bw_assets",
-            &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<VF4sAsset>>(),
-        );
+    let vf4_handle = loader.load_from(
+        format!("tileset\\{}.vf4", tileset_file_name),
+        VF4Format,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource::<AssetStorage<VF4sAsset>>(),
+    );
 
-        let wpe_handle = loader.load_from(
-            format!("tileset\\{}.wpe", tileset_file_name),
-            WPEFormat,
-            "bw_assets",
-            &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<WPEsAsset>>(),
-        );
+    let wpe_handle = loader.load_from(
+        format!("tileset\\{}.wpe", tileset_file_name),
+        WPEFormat,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource::<AssetStorage<WPEsAsset>>(),
+    );
 
-        let cv5_handle = loader.load_from(
-            format!("tileset\\{}.cv5", tileset_file_name),
-            CV5Format,
-            "bw_assets",
-            &mut progress_counter_newtype,
-            &world.read_resource::<AssetStorage<CV5sAsset>>(),
-        );
+    let cv5_handle = loader.load_from(
+        format!("tileset\\{}.cv5", tileset_file_name),
+        CV5Format,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource::<AssetStorage<CV5sAsset>>(),
+    );
 
-        TilesetHandles {
-            vx4s: vx4_handle,
-            vr4s: vr4_handle,
-            vf4s: vf4_handle,
-            cv5s: cv5_handle,
-            wpes: wpe_handle,
-        }
-    };
-
-    tileset_handles
+    Some(TilesetHandles {
+        vx4s: vx4_handle,
+        vr4s: vr4_handle,
+        vf4s: vf4_handle,
+        cv5s: cv5_handle,
+        wpes: wpe_handle,
+    })
 }

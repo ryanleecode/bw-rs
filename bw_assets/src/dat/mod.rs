@@ -1,3 +1,3 @@
 mod unit;
 
-pub use unit::{Unit, UnitDat, UnitDatFormat, UnitDatHandle, UnitPointer};
+pub use unit::{Unit, UnitDat, UnitDatAsset, UnitDatFormat, UnitDatHandle, UnitPointer};

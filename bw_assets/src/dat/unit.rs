@@ -293,10 +293,18 @@ pub struct Unit {
 
 pub struct UnitDat(Vec<Unit>);
 
-pub type UnitDatHandle = Handle<UnitDat>;
+pub struct UnitDatAsset(Option<UnitDat>);
 
-impl Asset for UnitDat {
-    const NAME: &'static str = "bw_assets::dat::UnitDat";
+impl UnitDatAsset {
+    pub fn take(&mut self) -> Option<UnitDat> {
+        self.0.take()
+    }
+}
+
+pub type UnitDatHandle = Handle<UnitDatAsset>;
+
+impl Asset for UnitDatAsset {
+    const NAME: &'static str = "bw_assets::dat::UnitsDatAsset";
     type Data = Self;
     type HandleStorage = DenseVecStorage<UnitDatHandle>;
 }
@@ -304,15 +312,15 @@ impl Asset for UnitDat {
 #[derive(Clone, Copy, Debug, Default)]
 pub struct UnitDatFormat;
 
-impl Format<UnitDat> for UnitDatFormat {
+impl Format<UnitDatAsset> for UnitDatFormat {
     fn name(&self) -> &'static str {
-        "UnitDatFormat"
+        "UnitsDatFormat"
     }
 
-    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<UnitDat> {
+    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<UnitDatAsset> {
         let (_, unit_dat) = parse_unit_dat(&b).map_err(|err| err.to_owned())?;
 
-        Ok(unit_dat)
+        Ok(UnitDatAsset(Some(unit_dat)))
     }
 }
 

@@ -43,16 +43,16 @@ impl Tile for AmethystTileBridge {
 
         let megatile = &map.megatiles[megatile_index(&coords, &map)];
 
-        let cv5s = &(*world.try_fetch::<Arc<CV5s>>().expect("cv5s is missing"));
+        let cv5s = &(*world.try_fetch::<Arc<CV5s>>()?);
 
         let megatile_reference = &cv5s[megatile][megatile];
 
-        let vx4s = &(*world.try_fetch::<Arc<VX4s>>().expect("vx4s is missing"));
+        let vx4s = &(*world.try_fetch::<Arc<VX4s>>()?);
 
         let minitiles = &vx4s[megatile_reference];
         let minitile = &minitiles[minitile_index(&coords)];
 
-        let vr4s = &(*world.try_fetch::<Arc<VR4s>>().expect("vr4s is missing"));
+        let vr4s = &(*world.try_fetch::<Arc<VR4s>>()?);
 
         if minitile.is_horizontally_flipped() {
             Some(minitile.index() + vr4s.len())

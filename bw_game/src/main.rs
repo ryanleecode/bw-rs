@@ -14,7 +14,7 @@ use amethyst::{
 };
 use amethyst::{tiles::MortonEncoder2D, utils::fps_counter::FpsCounterBundle};
 use bw_assets::{
-    dat::UnitDat,
+    dat::UnitDatAsset,
     map::Map,
     mpq::ArcMPQ,
     tileset::{CV5sAsset, VF4sAsset, VR4sAsset, VX4sAsset, WPEsAsset},
@@ -109,7 +109,7 @@ fn main() -> amethyst::Result<()> {
         .with(Processor::<WPEsAsset>::new(), "wpes_processor", &[])
         .with(Processor::<CV5sAsset>::new(), "cv5s_processor", &[])
         .with(Processor::<ArcMPQ>::new(), "mpq_processor", &[])
-        .with(Processor::<UnitDat>::new(), "unit_dat_processor", &[])
+        .with(Processor::<UnitDatAsset>::new(), "unit_dat_processor", &[])
         .with(
             CameraMovementSystem,
             "camera_movement_system",

@@ -22,7 +22,7 @@ use bw_assets::{
     dat::UnitsDat,
     dat::{
         FlingyDat, FlingyDatAsset, SpritesDat, SpritesDatAsset, TechDataDat, TechDataDatAsset,
-        UnitsDatAsset, WeaponsDat, WeaponsDatAsset,
+        UnitsDatAsset, UpgradesDat, UpgradesDatAsset, WeaponsDat, WeaponsDatAsset,
     },
     map::{Map, MapFormat, MapHandle},
     mpq::MPQHandle,
@@ -55,6 +55,7 @@ enum AssetType {
     WeaponsDat,
     SpritesDat,
     TechDataDat,
+    UpgradesDat,
     Camera,
     TilesetHandles,
     CV5s,
@@ -78,6 +79,7 @@ impl Display for AssetType {
             AssetType::WeaponsDat => write!(f, "weapons.dat"),
             AssetType::SpritesDat => write!(f, "sprites.dat"),
             AssetType::TechDataDat => write!(f, "techdata.dat"),
+            AssetType::UpgradesDat => write!(f, "upgrades.dat"),
             AssetType::Camera => write!(f, "camera"),
             AssetType::TilesetHandles => write!(f, "tileset_handles"),
             AssetType::CV5s => write!(f, "cv5s"),
@@ -150,6 +152,7 @@ fn build_asset_dependency_graph() -> IncrementalTopo<Node> {
     dag.add_node(Node::new(AssetType::WeaponsDat));
     dag.add_node(Node::new(AssetType::SpritesDat));
     dag.add_node(Node::new(AssetType::TechDataDat));
+    dag.add_node(Node::new(AssetType::UpgradesDat));
 
     dag.add_node(Node::new(AssetType::Camera));
     dag.add_node(Node::new(AssetType::TilesetHandles));
@@ -224,6 +227,15 @@ fn build_asset_dependency_graph() -> IncrementalTopo<Node> {
     .expect(&format!(
         "add {} <- {} dependency",
         AssetType::TechDataDat,
+        AssetType::DatHandles
+    ));
+    dag.add_dependency(
+        &Node::new(AssetType::DatHandles),
+        &Node::new(AssetType::UpgradesDat),
+    )
+    .expect(&format!(
+        "add {} <- {} dependency",
+        AssetType::UpgradesDat,
         AssetType::DatHandles
     ));
 
@@ -533,6 +545,18 @@ impl SimpleState for MatchLoadingState {
                         node.loaded.set(true);
                     }
                 }
+                AssetType::UpgradesDat => {
+                    let dat_handles = self.dat_handles.as_ref().expect("dat handles are missing");
+                    let upgrades_dat_opt = world
+                        .write_resource::<AssetStorage<UpgradesDatAsset>>()
+                        .get_mut(&dat_handles.upgrades_dat)
+                        .and_then(|asset| asset.take());
+                    if let Some(upgrades_dat) = upgrades_dat_opt {
+                        world.insert::<UpgradesDat>(upgrades_dat);
+                        node.loaded.set(true);
+                    }
+                }
+
                 AssetType::Camera => {
                     let map_handle = self.map_handle.as_ref().expect("map handle is missing");
                     let camera_width = 640.0;

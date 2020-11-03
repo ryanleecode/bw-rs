@@ -7,7 +7,8 @@ use amethyst::{
 };
 use bw_assets::dat::{
     FlingyDatFormat, FlingyDatHandle, SpritesDatFormat, SpritesDatHandle, TechDataDatFormat,
-    TechDataDatHandle, UnitsDatFormat, UnitsDatHandle, WeaponsDatFormat, WeaponsDatHandle,
+    TechDataDatHandle, UnitsDatFormat, UnitsDatHandle, UpgradesDatFormat, UpgradesDatHandle,
+    WeaponsDatFormat, WeaponsDatHandle,
 };
 
 #[derive(Clone)]
@@ -55,6 +56,7 @@ pub struct DatHandles {
     pub weapons_dat: WeaponsDatHandle,
     pub sprites_dat: SpritesDatHandle,
     pub tech_data_dat: TechDataDatHandle,
+    pub upgrades_dat: UpgradesDatHandle,
 }
 
 pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> DatHandles {
@@ -100,11 +102,20 @@ pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> D
         &world.read_resource(),
     );
 
+    let upgrades_dat = world.read_resource::<Loader>().load_from(
+        "arr\\upgrades.dat",
+        UpgradesDatFormat,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource(),
+    );
+
     DatHandles {
         units_dat,
         flingy_dat,
         weapons_dat,
         sprites_dat,
         tech_data_dat,
+        upgrades_dat,
     }
 }

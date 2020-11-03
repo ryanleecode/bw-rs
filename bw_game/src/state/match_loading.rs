@@ -21,8 +21,8 @@ use amethyst::{
 use bw_assets::{
     dat::UnitsDat,
     dat::{
-        FlingyDat, FlingyDatAsset, SpritesDat, SpritesDatAsset, UnitsDatAsset, WeaponsDat,
-        WeaponsDatAsset,
+        FlingyDat, FlingyDatAsset, SpritesDat, SpritesDatAsset, TechDataDat, TechDataDatAsset,
+        UnitsDatAsset, WeaponsDat, WeaponsDatAsset,
     },
     map::{Map, MapFormat, MapHandle},
     mpq::MPQHandle,
@@ -54,6 +54,7 @@ enum AssetType {
     FlingyDat,
     WeaponsDat,
     SpritesDat,
+    TechDataDat,
     Camera,
     TilesetHandles,
     CV5s,
@@ -76,6 +77,7 @@ impl Display for AssetType {
             AssetType::FlingyDat => write!(f, "flingy.dat"),
             AssetType::WeaponsDat => write!(f, "weapons.dat"),
             AssetType::SpritesDat => write!(f, "sprites.dat"),
+            AssetType::TechDataDat => write!(f, "techdata.dat"),
             AssetType::Camera => write!(f, "camera"),
             AssetType::TilesetHandles => write!(f, "tileset_handles"),
             AssetType::CV5s => write!(f, "cv5s"),
@@ -147,6 +149,7 @@ fn build_asset_dependency_graph() -> IncrementalTopo<Node> {
     dag.add_node(Node::new(AssetType::FlingyDat));
     dag.add_node(Node::new(AssetType::WeaponsDat));
     dag.add_node(Node::new(AssetType::SpritesDat));
+    dag.add_node(Node::new(AssetType::TechDataDat));
 
     dag.add_node(Node::new(AssetType::Camera));
     dag.add_node(Node::new(AssetType::TilesetHandles));
@@ -212,6 +215,15 @@ fn build_asset_dependency_graph() -> IncrementalTopo<Node> {
     .expect(&format!(
         "add {} <- {} dependency",
         AssetType::SpritesDat,
+        AssetType::DatHandles
+    ));
+    dag.add_dependency(
+        &Node::new(AssetType::DatHandles),
+        &Node::new(AssetType::TechDataDat),
+    )
+    .expect(&format!(
+        "add {} <- {} dependency",
+        AssetType::TechDataDat,
         AssetType::DatHandles
     ));
 
@@ -507,6 +519,17 @@ impl SimpleState for MatchLoadingState {
                         .and_then(|asset| asset.take());
                     if let Some(sprites_dat) = sprites_dat_opt {
                         world.insert::<SpritesDat>(sprites_dat);
+                        node.loaded.set(true);
+                    }
+                }
+                AssetType::TechDataDat => {
+                    let dat_handles = self.dat_handles.as_ref().expect("dat handles are missing");
+                    let tech_data_dat_opt = world
+                        .write_resource::<AssetStorage<TechDataDatAsset>>()
+                        .get_mut(&dat_handles.tech_data_dat)
+                        .and_then(|asset| asset.take());
+                    if let Some(tech_data_dat) = tech_data_dat_opt {
+                        world.insert::<TechDataDat>(tech_data_dat);
                         node.loaded.set(true);
                     }
                 }

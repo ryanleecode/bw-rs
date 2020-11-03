@@ -16,6 +16,7 @@ use amethyst::{
 use amethyst::{tiles::MortonEncoder2D, utils::fps_counter::FpsCounterBundle};
 use bw_assets::{
     dat::SpritesDatAsset,
+    dat::TechDataDatAsset,
     dat::WeaponsDatAsset,
     dat::{FlingyDatAsset, UnitsDatAsset},
     map::Map,
@@ -133,6 +134,11 @@ fn main() -> amethyst::Result<()> {
         .with(
             Processor::<SpritesDatAsset>::new(),
             "sprites_dat_processor",
+            &[],
+        )
+        .with(
+            Processor::<TechDataDatAsset>::new(),
+            "tech_data_dat_processor",
             &[],
         )
         .with(

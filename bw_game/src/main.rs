@@ -11,6 +11,7 @@ use amethyst::{
     tiles::RenderTiles2D,
     ui::{RenderUi, UiBundle},
     utils::application_root_dir,
+    Logger, LoggerConfig,
 };
 use amethyst::{tiles::MortonEncoder2D, utils::fps_counter::FpsCounterBundle};
 use bw_assets::{
@@ -30,7 +31,7 @@ mod config;
 mod graphics;
 mod state;
 
-fn setup_logger(level_filter: log::LevelFilter) -> Result<(), fern::InitError> {
+fn setup_logger(logger_config: LoggerConfig) -> Result<Logger, fern::InitError> {
     let colors_line = ColoredLevelConfig::new()
         .error(Color::Red)
         .warn(Color::Yellow)
@@ -38,8 +39,8 @@ fn setup_logger(level_filter: log::LevelFilter) -> Result<(), fern::InitError> {
 
     let colors_level = colors_line.clone().info(Color::Green);
 
-    fern::Dispatch::new()
-        .format(move |out, message, record| {
+    let logger =
+        amethyst::Logger::from_config_formatter(logger_config, move |out, message, record| {
             out.finish(format_args!(
                 "{color_line}[{date}][{target}][{level}{color_line}] {message}\x1B[0m",
                 color_line = format_args!(
@@ -51,13 +52,9 @@ fn setup_logger(level_filter: log::LevelFilter) -> Result<(), fern::InitError> {
                 level = colors_level.color(record.level()),
                 message = message,
             ))
-        })
-        .level(level_filter)
-        .filter(|metadata| metadata.target() != "amethyst_utils::fps_counter")
-        .chain(std::io::stdout())
-        .chain(fern::log_file("output.log")?)
-        .apply()?;
-    Ok(())
+        });
+
+    Ok(logger)
 }
 
 fn main() -> amethyst::Result<()> {
@@ -73,7 +70,18 @@ fn main() -> amethyst::Result<()> {
         .with_context(|_| amethyst::error::format_err!("failed to open config path",))?;
     let bw_config: config::BWConfig = ron::de::from_reader(bw_config_f)?;
 
-    setup_logger(log::LevelFilter::from_str(&bw_config.log_level)?)?;
+    let mut logger_config = LoggerConfig::default();
+    logger_config.level_filter = log::LevelFilter::from_str(&bw_config.log_level)?;
+    logger_config.module_levels.push((
+        "amethyst_utils::fps_counter".to_string(),
+        amethyst::LogLevelFilter::Off,
+    ));
+    logger_config.module_levels.push((
+        "incremental_topo".to_string(),
+        amethyst::LogLevelFilter::Off,
+    ));
+    let logger = setup_logger(logger_config)?;
+    logger.start();
 
     let display_config_path = config_dir.join("display.ron");
     let assets_dir = app_root.join("assets");

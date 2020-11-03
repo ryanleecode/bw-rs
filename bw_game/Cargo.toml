@@ -12,6 +12,7 @@ ron = "0.6.2"
 image = "0.23.1"
 chrono = "0.4"
 rayon = "1.1"
+incremental-topo = "0.1.2"
 ceres-mpq = { path = "../ceres-mpq" }
 
 [dependencies.amethyst]

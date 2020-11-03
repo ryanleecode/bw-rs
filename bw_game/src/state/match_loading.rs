@@ -19,8 +19,8 @@ use amethyst::{
     SimpleState, SimpleTrans,
 };
 use bw_assets::{
-    dat::UnitDat,
-    dat::{FlingyDat, FlingyDatAsset, UnitDatAsset},
+    dat::UnitsDat,
+    dat::{FlingyDat, FlingyDatAsset, UnitsDatAsset, WeaponsDat, WeaponsDatAsset},
     map::{Map, MapFormat, MapHandle},
     mpq::MPQHandle,
     mpq::{self, ArcMPQ},
@@ -49,6 +49,7 @@ enum AssetType {
     DatHandles,
     UnitsDat,
     FlingyDat,
+    WeaponsDat,
     Camera,
     TilesetHandles,
     CV5s,
@@ -69,6 +70,7 @@ impl Display for AssetType {
             AssetType::DatHandles => write!(f, "dat_handles"),
             AssetType::UnitsDat => write!(f, "units.dat"),
             AssetType::FlingyDat => write!(f, "flingy.dat"),
+            AssetType::WeaponsDat => write!(f, "weapons.dat"),
             AssetType::Camera => write!(f, "camera"),
             AssetType::TilesetHandles => write!(f, "tileset_handles"),
             AssetType::CV5s => write!(f, "cv5s"),
@@ -138,6 +140,8 @@ fn build_asset_dependency_graph() -> IncrementalTopo<Node> {
     dag.add_node(Node::new(AssetType::DatHandles));
     dag.add_node(Node::new(AssetType::UnitsDat));
     dag.add_node(Node::new(AssetType::FlingyDat));
+    dag.add_node(Node::new(AssetType::WeaponsDat));
+
     dag.add_node(Node::new(AssetType::Camera));
     dag.add_node(Node::new(AssetType::TilesetHandles));
 
@@ -184,6 +188,15 @@ fn build_asset_dependency_graph() -> IncrementalTopo<Node> {
     .expect(&format!(
         "add {} <- {} dependency",
         AssetType::FlingyDat,
+        AssetType::DatHandles
+    ));
+    dag.add_dependency(
+        &Node::new(AssetType::DatHandles),
+        &Node::new(AssetType::WeaponsDat),
+    )
+    .expect(&format!(
+        "add {} <- {} dependency",
+        AssetType::WeaponsDat,
         AssetType::DatHandles
     ));
 
@@ -441,11 +454,11 @@ impl SimpleState for MatchLoadingState {
                 AssetType::UnitsDat => {
                     let dat_handles = self.dat_handles.as_ref().expect("dat handles are missing");
                     let units_dat_opt = world
-                        .write_resource::<AssetStorage<UnitDatAsset>>()
+                        .write_resource::<AssetStorage<UnitsDatAsset>>()
                         .get_mut(&dat_handles.units_dat)
                         .and_then(|asset| asset.take());
                     if let Some(units_dat) = units_dat_opt {
-                        world.insert::<UnitDat>(units_dat);
+                        world.insert::<UnitsDat>(units_dat);
                         node.loaded.set(true);
                     }
                 }
@@ -457,6 +470,17 @@ impl SimpleState for MatchLoadingState {
                         .and_then(|asset| asset.take());
                     if let Some(flingy_dat) = flingy_dat_opt {
                         world.insert::<FlingyDat>(flingy_dat);
+                        node.loaded.set(true);
+                    }
+                }
+                AssetType::WeaponsDat => {
+                    let dat_handles = self.dat_handles.as_ref().expect("dat handles are missing");
+                    let weapons_dat_opt = world
+                        .write_resource::<AssetStorage<WeaponsDatAsset>>()
+                        .get_mut(&dat_handles.weapons_dat)
+                        .and_then(|asset| asset.take());
+                    if let Some(weapons_dat) = weapons_dat_opt {
+                        world.insert::<WeaponsDat>(weapons_dat);
                         node.loaded.set(true);
                     }
                 }

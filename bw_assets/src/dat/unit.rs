@@ -291,33 +291,33 @@ pub struct Unit {
     star_edit_availability_flags: u16,
 }
 
-pub struct UnitDat(Vec<Unit>);
+pub struct UnitsDat(Vec<Unit>);
 
-pub struct UnitDatAsset(Option<UnitDat>);
+pub struct UnitsDatAsset(Option<UnitsDat>);
 
-impl UnitDatAsset {
-    pub fn take(&mut self) -> Option<UnitDat> {
+impl UnitsDatAsset {
+    pub fn take(&mut self) -> Option<UnitsDat> {
         self.0.take()
     }
 }
 
-pub type UnitDatHandle = Handle<UnitDatAsset>;
+pub type UnitsDatHandle = Handle<UnitsDatAsset>;
 
-impl Asset for UnitDatAsset {
+impl Asset for UnitsDatAsset {
     const NAME: &'static str = "bw_assets::dat::UnitsDatAsset";
     type Data = Self;
-    type HandleStorage = DenseVecStorage<UnitDatHandle>;
+    type HandleStorage = DenseVecStorage<UnitsDatHandle>;
 }
 
 #[derive(Clone, Copy, Debug, Default)]
-pub struct UnitDatFormat;
+pub struct UnitsDatFormat;
 
-impl Format<UnitDatAsset> for UnitDatFormat {
+impl Format<UnitsDatAsset> for UnitsDatFormat {
     fn name(&self) -> &'static str {
         "UnitsDatFormat"
     }
 
-    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<UnitDatAsset> {
+    fn import_simple(&self, b: Vec<u8>) -> amethyst::Result<UnitsDatAsset> {
         let (_, unit_dat) = parse_unit_dat(&b).finish().map_err(|err| {
             amethyst::error::format_err!(
                 "failed to load units.dat asset: {} at position {}",
@@ -326,7 +326,7 @@ impl Format<UnitDatAsset> for UnitDatFormat {
             )
         })?;
 
-        Ok(UnitDatAsset(Some(unit_dat)))
+        Ok(UnitsDatAsset(Some(unit_dat)))
     }
 }
 
@@ -388,7 +388,7 @@ fn parse_unit_pointer(b: &[u8]) -> IResult<&[u8], UnitPointer> {
     map(le_u16, UnitPointer)(b)
 }
 
-fn parse_unit_dat(b: &[u8]) -> IResult<&[u8], UnitDat> {
+fn parse_unit_dat(b: &[u8]) -> IResult<&[u8], UnitsDat> {
     let (remaining, graphic_col) = count_total(le_u8)(b)?;
 
     let (remaining, sub_unit_1_col) = count_total(parse_unit_pointer)(remaining)?;
@@ -543,5 +543,5 @@ fn parse_unit_dat(b: &[u8]) -> IResult<&[u8], UnitDat> {
             })
             .collect::<Vec<_>>();
 
-    Ok((remaining, UnitDat(units)))
+    Ok((remaining, UnitsDat(units)))
 }

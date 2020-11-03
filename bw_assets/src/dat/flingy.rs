@@ -22,6 +22,15 @@ pub struct Flingy {
     move_control: u8,
 }
 
+#[derive(Clone, Debug)]
+pub struct FlingyPointer(u32);
+
+impl FlingyPointer {
+    pub fn new(p: u32) -> FlingyPointer {
+        FlingyPointer(p)
+    }
+}
+
 pub struct FlingyDat(Vec<Flingy>);
 
 pub struct FlingyDatAsset(Option<FlingyDat>);

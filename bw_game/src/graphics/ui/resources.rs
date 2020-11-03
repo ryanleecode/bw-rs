@@ -5,7 +5,10 @@ use amethyst::{
     prelude::*,
     ui::{FontAsset, TtfFormat},
 };
-use bw_assets::dat::{FlingyDatAsset, FlingyDatFormat, UnitDatAsset, UnitDatFormat, UnitDatHandle};
+use bw_assets::dat::{
+    FlingyDatFormat, FlingyDatHandle, UnitsDatFormat, UnitsDatHandle, WeaponsDatFormat,
+    WeaponsDatHandle,
+};
 
 #[derive(Clone)]
 pub struct Fonts {
@@ -47,16 +50,17 @@ pub fn load_fonts(world: &mut World, progress_counter: &mut ProgressCounter) {
 
 #[derive(Debug, Clone)]
 pub struct DatHandles {
-    pub units_dat: Handle<UnitDatAsset>,
-    pub flingy_dat: Handle<FlingyDatAsset>,
+    pub units_dat: UnitsDatHandle,
+    pub flingy_dat: FlingyDatHandle,
+    pub weapons_dat: WeaponsDatHandle,
 }
 
 pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> DatHandles {
     let mut progress_counter_newtype = ProgressCounterMutRef::new(progress_counter);
 
-    let units_dat: UnitDatHandle = world.read_resource::<Loader>().load_from(
+    let units_dat: UnitsDatHandle = world.read_resource::<Loader>().load_from(
         "arr\\units.dat",
-        UnitDatFormat,
+        UnitsDatFormat,
         "bw_assets",
         &mut progress_counter_newtype,
         &world.read_resource(),
@@ -70,8 +74,17 @@ pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> D
         &world.read_resource(),
     );
 
+    let weapons_dat = world.read_resource::<Loader>().load_from(
+        "arr\\weapons.dat",
+        WeaponsDatFormat,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource(),
+    );
+
     DatHandles {
         units_dat,
         flingy_dat,
+        weapons_dat,
     }
 }

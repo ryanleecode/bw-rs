@@ -6,8 +6,8 @@ use amethyst::{
     ui::{FontAsset, TtfFormat},
 };
 use bw_assets::dat::{
-    FlingyDatFormat, FlingyDatHandle, UnitsDatFormat, UnitsDatHandle, WeaponsDatFormat,
-    WeaponsDatHandle,
+    FlingyDatFormat, FlingyDatHandle, SpritesDatFormat, SpritesDatHandle, UnitsDatFormat,
+    UnitsDatHandle, WeaponsDatFormat, WeaponsDatHandle,
 };
 
 #[derive(Clone)]
@@ -53,6 +53,7 @@ pub struct DatHandles {
     pub units_dat: UnitsDatHandle,
     pub flingy_dat: FlingyDatHandle,
     pub weapons_dat: WeaponsDatHandle,
+    pub sprites_dat: SpritesDatHandle,
 }
 
 pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> DatHandles {
@@ -82,9 +83,18 @@ pub fn load_dats(world: &mut World, progress_counter: &mut ProgressCounter) -> D
         &world.read_resource(),
     );
 
+    let sprites_dat = world.read_resource::<Loader>().load_from(
+        "arr\\sprites.dat",
+        SpritesDatFormat,
+        "bw_assets",
+        &mut progress_counter_newtype,
+        &world.read_resource(),
+    );
+
     DatHandles {
         units_dat,
         flingy_dat,
         weapons_dat,
+        sprites_dat,
     }
 }

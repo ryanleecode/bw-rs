@@ -475,7 +475,7 @@ fn parse_unit_dat(b: &[u8]) -> IResult<&[u8], UnitsDat> {
                 graphics: graphic_col[i],
                 sub_unit_1: sub_unit_1_col[i].clone(),
                 infestation: (i >= UNIT_COUNT && i < UNIT_COUNT + BUILDING_COUNT)
-                    .and_option_from(|| infestation_col.get(i).map(ToOwned::to_owned)),
+                    .and_option_from(|| infestation_col.get(i - UNIT_COUNT).map(ToOwned::to_owned)),
                 construction_animation: construction_animation_col[i],
                 unit_direction: unit_direction_col[i],
                 are_shields_enabled: are_shields_enabled_col[i],

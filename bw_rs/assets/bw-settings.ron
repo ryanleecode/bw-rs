@@ -1,0 +1,4 @@
+BWSettings(
+  log_level: "debug",
+  map: "(2)Destination.scx"
+)

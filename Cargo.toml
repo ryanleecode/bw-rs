@@ -1,0 +1,5 @@
+[workspace]
+members = [
+  "ceres-mpq", "bw_rs",
+  "bw_assets", "bw_bevy_assets", "bw_tilemap"
+]

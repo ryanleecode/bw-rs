@@ -1,0 +1,11 @@
+[package]
+name = "bw_tilemap"
+version = "0.1.0"
+authors = ["Ryan <drdgvhbh@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+bevy = { git = "https://github.com/bevyengine/bevy.git", rev = "c32c78fc66be2a4a907784b2dcc552e7f9985f52" }
+bw_bevy_assets = { path = "../bw_bevy_assets" }
